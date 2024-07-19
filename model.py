@@ -76,13 +76,12 @@ class Discriminator(nn.Module):
             layers.append(nn.LeakyReLU(0.01))
             curr_dim = curr_dim * 2
 
-        kernel_size = int(image_size / np.power(2, repeat_num))
         self.main = nn.Sequential(*layers)
-        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
+        self.final_dim = c_dim * 2 + 2  # Arbitrary, but should scale up with number of classes.
+        self.conv = nn.Conv2d(curr_dim, self.final_dim, kernel_size=3, stride=1, padding=1, bias=False)
+        self.combine = nn.Bilinear(self.final_dim, c_dim, 1)
         
-    def forward(self, x):
+    def forward(self, x, labels):
         h = self.main(x)
-        out_src = self.conv1(h)
-        out_cls = self.conv2(h)
-        return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
+        out = self.conv(h)
+        return self.combine(out.view(out.size(0), self.final_dim))

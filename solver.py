@@ -28,7 +28,7 @@ class Solver(object):
         self.d_conv_dim = config.d_conv_dim
         self.g_repeat_num = config.g_repeat_num
         self.d_repeat_num = config.d_repeat_num
-        self.lambda_cls = config.lambda_cls
+        self.lambda_cls = config.lambda_cls  # Unused. TODO remove.
         self.lambda_rec = config.lambda_rec
         self.lambda_gp = config.lambda_gp
 
@@ -125,11 +125,11 @@ class Solver(object):
         out = (x + 1) / 2
         return out.clamp_(0, 1)
 
-    def gradient_penalty(self, y, x):
+    def gradient_penalty(self, y, x, labels):
         """Compute gradient penalty: (L2_norm(dy/dx) - 1)**2."""
         weight = torch.ones(y.size()).to(self.device)
         dydx = torch.autograd.grad(outputs=y,
-                                   inputs=x,
+                                   inputs=[x, labels],
                                    grad_outputs=weight,
                                    retain_graph=True,
                                    create_graph=True,
@@ -171,13 +171,6 @@ class Solver(object):
 
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
-
-    def classification_loss(self, logit, target, dataset='CelebA'):
-        """Compute binary or softmax cross entropy loss."""
-        if dataset == 'CelebA':
-            return F.binary_cross_entropy_with_logits(logit, target, size_average=False) / logit.size(0)
-        elif dataset == 'RaFD':
-            return F.cross_entropy(logit, target)
 
     def train(self):
         """Train StarGAN within a single dataset."""
@@ -241,23 +234,23 @@ class Solver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
-            out_src, out_cls = self.D(x_real)
-            d_loss_real = - torch.mean(out_src)
-            d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
+            out_src = self.D(x_real, c_org)
+            d_loss_real = -torch.mean(out_src)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
-            out_src, out_cls = self.D(x_fake.detach())
+            out_src = self.D(x_fake.detach(), c_trg)
             d_loss_fake = torch.mean(out_src)
 
             # Compute loss for gradient penalty.
             alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
-            out_src, _ = self.D(x_hat)
+            label_hat = (alpha * c_org + (1-alpha) * c_trg).requires_grad_(True)
+            out_src, _ = self.D(x_hat, label_hat)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
+            d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -266,7 +259,6 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real.item()
             loss['D/loss_fake'] = d_loss_fake.item()
-            loss['D/loss_cls'] = d_loss_cls.item()
             loss['D/loss_gp'] = d_loss_gp.item()
             
             # =================================================================================== #
@@ -276,16 +268,15 @@ class Solver(object):
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
-                out_src, out_cls = self.D(x_fake)
-                g_loss_fake = - torch.mean(out_src)
-                g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
+                out_src = self.D(x_fake, c_trg)
+                g_loss_fake = -torch.mean(out_src)
 
                 # Target-to-original domain.
                 x_reconst = self.G(x_fake, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
@@ -293,7 +284,6 @@ class Solver(object):
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake.item()
                 loss['G/loss_rec'] = g_loss_rec.item()
-                loss['G/loss_cls'] = g_loss_cls.item()
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #
@@ -338,7 +328,7 @@ class Solver(object):
                 self.update_lr(g_lr, d_lr)
                 print ('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
 
-    def train_multi(self):
+    def train_multi(self):  # TODO not touching this yet.
         """Train StarGAN with multiple datasets."""        
         # Data iterators.
         celeba_iter = iter(self.celeba_loader)
@@ -520,7 +510,7 @@ class Solver(object):
                 self.update_lr(g_lr, d_lr)
                 print ('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
 
-    def test(self):
+    def test(self):  # TODO not touching this yet.
         """Translate images using StarGAN trained on a single dataset."""
         # Load the trained generator.
         self.restore_model(self.test_iters)
@@ -549,7 +539,7 @@ class Solver(object):
                 save_image(self.denorm(x_concat.data.cpu()), result_path, nrow=1, padding=0)
                 print('Saved real and fake images into {}...'.format(result_path))
 
-    def test_multi(self):
+    def test_multi(self):  # TODO not touching this yet.
         """Translate images using StarGAN trained on multiple datasets."""
         # Load the trained generator.
         self.restore_model(self.test_iters)

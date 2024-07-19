@@ -1,0 +1,15 @@
+start with stargan
+
+simple dataset - use imagemagick when that's up to make inverted mnist or similar
+
+train it myself to see how well it works
+
+try my different approach to including labels (bilinear from im_2_im)
+try other changes - autoencoder loss rather than cycle consistency?
+	or pretraining as autoencoder
+		autoencoder loss term could decrease over time, going from basically pretraining -> just enforcing consistency
+
+generator is adding domain info as channels, replicated over whole image - could try concatting at bottleneck instead
+
+use git branches to test
+	make sure to load appropriate branch in kaggle
