@@ -79,7 +79,7 @@ class Discriminator(nn.Module):
         self.main = nn.Sequential(*layers)
         self.final_dim = c_dim * 2 + 2  # Arbitrary, but should scale up with number of classes.
         self.conv = nn.Conv2d(curr_dim, self.final_dim, kernel_size=3, stride=1, padding=1, bias=False)
-        self.combine = nn.Bilinear(self.final_dim, c_dim, 1)
+        self.combine = nn.Bilinear(self.final_dim, c_dim, 1, bias=False)
         
     def forward(self, x, labels):
         h = self.main(x)
