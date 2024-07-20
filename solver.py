@@ -247,7 +247,7 @@ class Solver(object):
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
             alpha_flat = alpha.view(x_real.size(0), 1)
             label_hat = (alpha_flat * c_org + (1-alpha_flat) * c_trg).requires_grad_(True)
-            out_src, _ = self.D(x_hat, label_hat)
+            out_src = self.D(x_hat, label_hat)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
