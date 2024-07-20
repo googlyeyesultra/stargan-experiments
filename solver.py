@@ -248,7 +248,7 @@ class Solver(object):
             alpha_flat = alpha.view(x_real.size(0))
             print(alpha_flat.size())
             print(c_org.size())
-            print(c_targ.size())
+            print(c_trg.size())
             label_hat = (alpha_flat * c_org + (1-alpha_flat) * c_trg).requires_grad_(True)
             out_src, _ = self.D(x_hat, label_hat)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
