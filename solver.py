@@ -248,7 +248,7 @@ class Solver(object):
             alpha_flat = alpha.view(x_real.size(0), 1)
             label_hat = (alpha_flat * c_org + (1-alpha_flat) * c_trg).requires_grad_(True)
             out_src = self.D(x_hat, label_hat)
-            d_loss_gp = self.gradient_penalty(out_src, x_hat)
+            d_loss_gp = self.gradient_penalty(out_src, x_hat, label_hat)
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
@@ -410,7 +410,7 @@ class Solver(object):
                 # Compute loss with real images.
                 out_src, out_cls = self.D(x_real)
                 out_cls = out_cls[:, :self.c_dim] if dataset == 'CelebA' else out_cls[:, self.c_dim:]
-                d_loss_real = - torch.mean(out_src)
+                d_loss_real = -torch.mean(out_src)
                 d_loss_cls = self.classification_loss(out_cls, label_org, dataset)
 
                 # Compute loss with fake images.
@@ -422,7 +422,7 @@ class Solver(object):
                 alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
                 x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
                 out_src, _ = self.D(x_hat)
-                d_loss_gp = self.gradient_penalty(out_src, x_hat)
+                d_loss_gp = self.gradient_penalty(out_src, x_hat, )
 
                 # Backward and optimize.
                 d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
