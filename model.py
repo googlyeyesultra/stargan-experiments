@@ -84,4 +84,4 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x)
         out = self.conv(h)
-        return self.combine(out.view(out.size(0), self.final_dim))
+        return self.combine(out.view(out.size(0), self.final_dim), labels)
