@@ -22,5 +22,11 @@ What about scores being noticeably different per class?
 Try different inputs to one-hot labels - give it multiple ones, or .5, .5, or set something to 2. Already partially done by STARGAN.
 
 If switching to encoder/decoder architecture for generator, try encoding an image, tweaking encoding, then decoding.
-
+    Can also try putting random noise in as the encoding and see what comes out, but probably won't be good.
+    Try combining encodings of two or more images (e.g. weighted average)
 Should encoder know source image label?
+
+
+Because bilinear is O(num_classes^2) parameters currently, in theory might struggle with huge numbers of classes (like 1000s).
+Might work fine with first dimension not proportionate to number of classes. Not a big deal regardless.
+
