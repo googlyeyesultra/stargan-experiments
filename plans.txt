@@ -24,6 +24,8 @@ Try different inputs to one-hot labels - give it multiple ones, or .5, .5, or se
 If switching to encoder/decoder architecture for generator, try encoding an image, tweaking encoding, then decoding.
     Can also try putting random noise in as the encoding and see what comes out, but probably won't be good.
     Try combining encodings of two or more images (e.g. weighted average)
+    can try having encoder classify - it would output a feature vector. The first k components would be the classes of the input image.
+        Enforced by bce loss on those. Then to change class in generated image, overwrite them.
 Should encoder know source image label?
 
 
