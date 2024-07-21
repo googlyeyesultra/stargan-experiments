@@ -88,5 +88,5 @@ def get_loader(image_dir, attr_path, selected_attrs, crop_size=178, image_size=1
     data_loader = data.DataLoader(dataset=dataset,
                                   batch_size=batch_size,
                                   shuffle=(mode=='train'),
-                                  num_workers=num_workers)
+                                  num_workers=num_workers, generator=torch.Generator().manual_seed(23))
     return data_loader
