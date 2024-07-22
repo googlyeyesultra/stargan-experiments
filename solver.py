@@ -338,7 +338,7 @@ class Solver(object):
                 self.update_lr(g_lr, d_lr)
                 print ('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
 
-    def train_multi(self):
+    def train_multi(self):  # Not done yet TODO.
         """Train StarGAN with multiple datasets."""        
         # Data iterators.
         celeba_iter = iter(self.celeba_loader)
@@ -458,8 +458,8 @@ class Solver(object):
                     g_loss_fake = - torch.mean(out_src)
                     g_loss_cls = self.classification_loss(out_cls, label_trg, dataset)
 
-                    # Target-to-original domain.
-                    x_reconst = self.G(x_fake, c_org)
+                    # Autoencoder loss.
+                    x_reconst = self.G(x_real, c_org)
                     g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                     # Backward and optimize.
@@ -520,7 +520,7 @@ class Solver(object):
                 self.update_lr(g_lr, d_lr)
                 print ('Decayed learning rates, g_lr: {}, d_lr: {}.'.format(g_lr, d_lr))
 
-    def test(self):
+    def test(self):  # Not done yet TODO.
         """Translate images using StarGAN trained on a single dataset."""
         # Load the trained generator.
         self.restore_model(self.test_iters)
@@ -549,7 +549,7 @@ class Solver(object):
                 save_image(self.denorm(x_concat.data.cpu()), result_path, nrow=1, padding=0)
                 print('Saved real and fake images into {}...'.format(result_path))
 
-    def test_multi(self):
+    def test_multi(self):  # Not done yet TODO.
         """Translate images using StarGAN trained on multiple datasets."""
         # Load the trained generator.
         self.restore_model(self.test_iters)
