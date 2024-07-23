@@ -60,10 +60,8 @@ class Generator(nn.Module):
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         enc = self.encoder(x)
-        broadcast_label = c.view(c.size(0), 1, 1, c.size(1)).expand(-1, enc.size(1), enc.size(2),-1)
-        print(enc.size())
-        print(broadcast_label.size())
-        labeled = self.apply_label(enc, broadcast_label)
+        broadcast_label = c.view(c.size(0), 1, 1, c.size(1)).expand(-1, enc.size(2), enc.size(3), -1)
+        labeled = self.apply_label(enc, broadcast_label.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         return self.decoder(labeled)
 
 
