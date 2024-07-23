@@ -47,7 +47,8 @@ class Generator(nn.Module):
         # TODO need to change the convtranspose2d.
         # Up-sampling layers.
         for i in range(2):
-            self.decoder.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.decoder.append(nn.Upsample(scale_factor=2))
+            self.decoder.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
             self.decoder.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
             self.decoder.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
