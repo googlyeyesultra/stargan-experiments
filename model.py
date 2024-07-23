@@ -24,42 +24,43 @@ class Generator(nn.Module):
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
 
-        layers = []
-        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        layers.append(nn.ReLU(inplace=True))
+        self.encoder = nn.Sequential()
+        self.encoder.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.encoder.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        self.encoder.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            layers.append(nn.ReLU(inplace=True))
+            self.encoder.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.encoder.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            self.encoder.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
+        self.apply_label = nn.Bilinear(curr_dim, c_dim, curr_dim)
+
+        self.decoder = nn.Sequential()
         # Bottleneck layers.
         for i in range(repeat_num):
-            layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.decoder.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         # Up-sampling layers.
         for i in range(2):
-            layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            layers.append(nn.ReLU(inplace=True))
+            self.decoder.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.decoder.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            self.decoder.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.Tanh())
-        self.main = nn.Sequential(*layers)
+        self.decoder.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
+        self.decoder.append(nn.Tanh())
 
     def forward(self, x, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
-        return self.main(x)
+        enc = self.encoder(x)
+        labeled = self.apply_label(enc, c)
+        return self.decoder(labeled)
 
 
 class Discriminator(nn.Module):
