@@ -25,7 +25,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.encoder = nn.Sequential()
-        self.encoder.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.encoder.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.encoder.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.encoder.append(nn.ReLU(inplace=True))
 
@@ -44,6 +44,7 @@ class Generator(nn.Module):
         for i in range(repeat_num):
             self.decoder.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
+        # TODO need to change the convtranspose2d.
         # Up-sampling layers.
         for i in range(2):
             self.decoder.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
