@@ -5,3 +5,6 @@ Original seems to train representation first (like autoencoder) since that reduc
 Testing on horse2zebra.
 Note that horse2zebra test is before I removed bias=False from conv2d.
 Kinda similar results on horse2zebra, similar runtimes. Both need more time to actually work well.
+
+
+note that I have increased discrim cycles/gen cycle to 10 (from 5)
