@@ -28,7 +28,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.layers.append(nn.ReLU(inplace=True))
 
