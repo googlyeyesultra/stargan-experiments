@@ -1,0 +1,34 @@
+start with stargan
+
+simple dataset - use imagemagick when that's up to make inverted mnist or similar
+
+train it myself to see how well it works
+
+try my different approach to including labels (bilinear from im_2_im)
+try other changes - autoencoder loss rather than cycle consistency?
+	or pretraining as autoencoder
+		autoencoder loss term could decrease over time, going from basically pretraining -> just enforcing consistency
+
+generator is adding domain info as channels, replicated over whole image - could try concatting at bottleneck instead
+
+use git branches to test
+	make sure to load appropriate branch in kaggle
+	
+	
+Is there anything that prevents scores from drifting? e.g. discriminator all being 10 higher?
+What about scores being noticeably different per class?
+    Do either of those things matter?
+    
+Try different inputs to one-hot labels - give it multiple ones, or .5, .5, or set something to 2. Already partially done by STARGAN.
+
+If switching to encoder/decoder architecture for generator, try encoding an image, tweaking encoding, then decoding.
+    Can also try putting random noise in as the encoding and see what comes out, but probably won't be good.
+    Try combining encodings of two or more images (e.g. weighted average)
+    can try having encoder classify - it would output a feature vector. The first k components would be the classes of the input image.
+        Enforced by bce loss on those. Then to change class in generated image, overwrite them.
+Should encoder know source image label?
+
+
+Because bilinear is O(num_classes^2) parameters currently, in theory might struggle with huge numbers of classes (like 1000s).
+Might work fine with first dimension not proportionate to number of classes. Not a big deal regardless.
+
