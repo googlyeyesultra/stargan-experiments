@@ -242,7 +242,7 @@ class Solver(object):
 
             # Compute loss with real images.
             out_src, out_cls = self.D(x_real)
-            d_loss_real = - torch.mean(out_src)
+            d_loss_real = -torch.mean(out_src)
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.

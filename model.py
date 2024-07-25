@@ -21,49 +21,55 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):  # TODO Try other values
         super(Generator, self).__init__()
+        
+        self.poly_degree = poly_degree
+        self.poly_eps = poly_eps
 
-        self.encoder = nn.Sequential()
-        self.encoder.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.encoder.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        self.encoder.append(nn.ReLU(inplace=True))
+        self.layers = nn.Sequential()
+        self.layers.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        self.layers.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.encoder.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.encoder.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.encoder.append(nn.ReLU(inplace=True))
+            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
-        self.apply_label = nn.Bilinear(curr_dim, c_dim, curr_dim)
-
-        self.decoder = nn.Sequential()
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.decoder.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
-        # TODO need to change the convtranspose2d.
         # Up-sampling layers.
         for i in range(2):
-            self.decoder.append(nn.Upsample(scale_factor=2))
-            self.decoder.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            self.decoder.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            self.decoder.append(nn.ReLU(inplace=True))
+            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
+            self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.decoder.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
-        self.decoder.append(nn.Tanh())
+        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
 
-    def forward(self, x, c):
+    def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
-        enc = self.encoder(x)
-        broadcast_label = c.view(c.size(0), 1, 1, c.size(1)).expand(-1, enc.size(2), enc.size(3), -1)
-        labeled = self.apply_label(enc.permute(0, 2, 3, 1), broadcast_label).permute(0, 3, 1, 2)
-        return self.decoder(labeled)
+        
+        c = c.view(c.size(0), c.size(1), 1, 1)
+        c = c.repeat(1, 1, im.size(2), im.size(3))
+        x = torch.cat([im, c], dim=1)
+        
+
+        num = x.view(x.size(0), self.poly_degree+1, 3, x.size(2), x.size(3))
+        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
+        coeffs = num / denom
+
+        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
+        return (pows * coeffs).sum(1)
 
 
 class Discriminator(nn.Module):
