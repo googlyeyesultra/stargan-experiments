@@ -62,7 +62,7 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        print(x.size())
+        x = self.layers(x)
 
         num = x.view(x.size(0), self.poly_degree+1, 3, x.size(2), x.size(3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
