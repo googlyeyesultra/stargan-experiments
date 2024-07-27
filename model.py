@@ -80,10 +80,11 @@ class Discriminator(nn.Module):
         self.final_dim = c_dim * 2 + 2  # Arbitrary, but should scale up with number of classes.
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.conv = nn.Conv2d(curr_dim, self.final_dim, kernel_size=kernel_size)
-        self.combine = nn.Bilinear(self.final_dim, c_dim, 1, bias=False)
+        self.combine = nn.Bilinear(self.final_dim, c_dim*2, 1, bias=False)
         
     def forward(self, x, labels):
         h = self.main(x)
         out = self.conv(h)
+        labels = torch.cat(labels, 1-labels)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
         labels_normed = labels / (labels.sum(1, keepdim=True) + 1e-8)
         return self.combine(out.view(out.size(0), self.final_dim), labels_normed)
