@@ -24,6 +24,9 @@ class Generator(nn.Module):
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=10, poly_degree=3, poly_eps=.01):
         super(Generator, self).__init__()
 
+        self.poly_degree = poly_degree
+        self.poly_eps = poly_eps
+        
         layers = []
         layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
