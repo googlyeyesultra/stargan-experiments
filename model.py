@@ -21,7 +21,7 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=10):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=10, poly_degree=3, poly_eps=.01):
         super(Generator, self).__init__()
 
         layers = []
@@ -33,18 +33,25 @@ class Generator(nn.Module):
         for i in range(repeat_num):
             layers.append(ResidualBlock(dim_in=conv_dim, dim_out=conv_dim))
 
-        layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.Tanh())
+        layers.append(nn.Conv2d(conv_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=False))
         self.main = nn.Sequential(*layers)
 
-    def forward(self, x, c):
+    def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
+        
         c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
-        return self.main(x)
+        c = c.repeat(1, 1, im.size(2), im.size(3))
+        x = torch.cat([im, c], dim=1)
+        x = self.main(x)
+
+        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
+        coeffs = num / denom
+
+        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
+        return (pows * coeffs).sum(1)
 
 
 class Discriminator(nn.Module):
