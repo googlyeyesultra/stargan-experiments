@@ -77,7 +77,7 @@ class Discriminator(nn.Module):
             curr_dim = curr_dim * 2
 
         self.main = nn.Sequential(*layers)
-        self.final_dim = c_dim * 2 + 2  # Arbitrary, but should scale up with number of classes.
+        self.final_dim = c_dim * 4 + 2  # Arbitrary, but should scale up with number of classes.
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.conv = nn.Conv2d(curr_dim, self.final_dim, kernel_size=kernel_size)
         self.combine = nn.Bilinear(self.final_dim, c_dim*2, 1, bias=False)
