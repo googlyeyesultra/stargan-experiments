@@ -85,5 +85,5 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x)
         out = self.conv(h)
-        labels_normed = labels / (labels.sum(1) + 1e-8)
+        labels_normed = labels / (labels.sum(1, keepdim=True) + 1e-8)
         return self.combine(out.view(out.size(0), self.final_dim), labels_normed)
