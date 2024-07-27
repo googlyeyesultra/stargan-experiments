@@ -85,6 +85,6 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x)
         out = self.conv(h)
-        labels = torch.cat(labels, 1-labels, dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
+        labels = torch.cat((labels, 1-labels), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
         labels_normed = labels / (labels.sum(1, keepdim=True) + 1e-8)
         return self.combine(out.view(out.size(0), self.final_dim), labels_normed)
