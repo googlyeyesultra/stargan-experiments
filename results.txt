@@ -3,3 +3,6 @@ Original has convolution artifacts presumably from Conv2dTranspose.
 Autoencoder ran in 10:16 on celeba. Original ran in 10:22. Probably not significant - running on shared machines.
 Autoencoder results very similar but probably a tiny bit worse. Can try FID/etc. to actually evaluate.
     Certainly close enough to be worth considering.
+    
+Upsample and deg_1 have very poor performance. Upsample with deg_2 and deg_3 seems to work okay.
+Bilinear and learned bilinear both perform poorly.
