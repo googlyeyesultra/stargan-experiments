@@ -1,10 +1,5 @@
-Bilinear is promising on mnist - faster training (in epochs). Time per epoch almost identical. Similar results.
-Bilinear trains both class change and representation at once.
-Original seems to train representation first (like autoencoder) since that reduces cycle consistency loss and discrim loss, then fixes the class later.
+Original has convolution artifacts presumably from Conv2dTranspose.
 
-Testing on horse2zebra.
-Note that horse2zebra test is before I removed bias=False from conv2d.
-Kinda similar results on horse2zebra, similar runtimes. Both need more time to actually work well.
-
-
-Original has serious convolution artifacts presumably from Conv2dTranspose.
+Autoencoder ran in 10:16 on celeba. Original ran in 10:22. Probably not significant - running on shared machines.
+Autoencoder results very similar but probably a tiny bit worse. Can try FID/etc. to actually evaluate.
+    Certainly close enough to be worth considering.
