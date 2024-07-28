@@ -6,3 +6,7 @@ Autoencoder results very similar but probably a tiny bit worse. Can try FID/etc.
     
 Upsample and deg_1 have very poor performance. Upsample with deg_2 and deg_3 seems to work okay.
 Bilinear and learned bilinear both perform poorly.
+
+Degree 3 is sometimes better than original, though there are occasional spots it visibly misbehaves a little bit.]
+    Basically, doesn't have checkerboard artifacts, and hews closer to original image.
+    But has spots where it recolors wrong thing or doesn't change something it should.
