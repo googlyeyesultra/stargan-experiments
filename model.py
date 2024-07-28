@@ -62,8 +62,8 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         orig_c = orig_c.view(orig_c.size(0), orig_c.size(1), 1, 1)
-        orig_c = orig_c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c, orig_c], dim=1)
+        orig_c = orig_c.repeat(1, 1, im.size(2), im.size(3))
+        x = torch.cat([im, c, orig_c], dim=1)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
@@ -98,4 +98,3 @@ class Discriminator(nn.Module):
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
         return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
-==== BASE ====
