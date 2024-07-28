@@ -61,7 +61,7 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        alpha = F.sigmoid(x[:,0,:,:])
+        alpha = F.sigmoid(x[:,0,:,:]).unsqueeze(1)
         new_img = x[:,1:,:,:]
         
         return im * alpha + F.tanh(new_img) * (1-alpha) 
