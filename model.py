@@ -25,7 +25,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         layers = []
-        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Conv2d(3+c_dim*2, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         layers.append(nn.ReLU(inplace=True))
 
@@ -52,13 +52,15 @@ class Generator(nn.Module):
         layers.append(nn.Tanh())
         self.main = nn.Sequential(*layers)
 
-    def forward(self, x, c):
+    def forward(self, x, c, orig_c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
+        orig_c = orig_c.view(orig_c.size(0), orig_c.size(1), 1, 1)
+        orig_c = orig_c.repeat(1, 1, x.size(2), x.size(3))
+        x = torch.cat([x, c, orig_c], dim=1)
         return self.main(x)
 
 
