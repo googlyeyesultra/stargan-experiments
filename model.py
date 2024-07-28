@@ -21,11 +21,8 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):  # TODO Try other values
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
-        
-        self.poly_degree = poly_degree
-        self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
@@ -52,7 +49,7 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(curr_dim, 4, kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -64,13 +61,10 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
-        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
-        coeffs = num / denom
-
-        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
-        return (pows * coeffs).sum(1)
-
+        alpha = F.sigmoid(x[:,0,:,:])
+        new_img = x[:,1:,:,:]
+        
+        return im * alpha + F.tanh(new_img) * (1-alpha) 
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
