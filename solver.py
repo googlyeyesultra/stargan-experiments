@@ -190,7 +190,7 @@ class Solver(object):
         # Fetch fixed inputs for debugging.
         data_iter = iter(data_loader)
         x_fixed, c_org = next(data_iter)
-        sample_labels = c_org
+        sample_labels = c_org.to(self.device)
         x_fixed = x_fixed.to(self.device)
         c_fixed_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
 
