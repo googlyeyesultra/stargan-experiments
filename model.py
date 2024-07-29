@@ -66,7 +66,7 @@ class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
     def __init__(self, image_size=128, c_dim=5):
         super(Discriminator, self).__init__()
-        self.vit = models.VisionTransformer.vib_b_16(image_size=image_size, num_classes=c_dim+1)
+        self.vit = models.vision_transformer.vib_b_16(image_size=image_size, num_classes=c_dim+1)
         
     def forward(self, x):
         out = self.vit(x)
