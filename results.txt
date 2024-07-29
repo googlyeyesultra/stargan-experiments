@@ -10,3 +10,12 @@ Bilinear and learned bilinear both perform poorly.
 Degree 3 is sometimes better than original, though there are occasional spots it visibly misbehaves a little bit.]
     Basically, doesn't have checkerboard artifacts, and hews closer to original image.
     But has spots where it recolors wrong thing or doesn't change something it should.
+    Original sort of does the same but it is less obvious.
+    
+    
+NOTE THAT THE POLYNOMIAL ONES ARE USING 10 D STEPS PER G UPDATE - ORIGINAL IS USING 5
+Should compare without for fairness, or run original with 10.
+
+
+Adding original labels to generator has mixed results. Some are a little better, some a little worse.
+Polynomials above degree 3 don't really improve anything over degree 3. Maaaaybe degree 5 is a bit better, but hard to tell.
