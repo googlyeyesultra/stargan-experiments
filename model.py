@@ -28,7 +28,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(nn.Conv2d(3 + c_dim + 2, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.layers.append(nn.ReLU(inplace=True))
 
@@ -61,7 +61,13 @@ class Generator(nn.Module):
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
+        pos1 = torch.tensor(np.linspace(-1, 1, im.size(2)), dtype=torch.float, device=im.get_device())
+        pos1 = pos1.view(1, 1, pos1.size(0), 1).expand(im.size(0), 1, -1, im.size(3))
+        
+        pos2 = torch.tensor(np.linspace(-1, 1, im.size(3)), dtype=torch.float, device=im.get_device())
+        pos2 = pos2.view(1, 1, 1, pos2.size(0)).expand(im.size(0), 1, im.size(2), -1)
+        
+        x = torch.cat([im, c, pos1, pos2], dim=1)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
