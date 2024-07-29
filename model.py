@@ -59,10 +59,10 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
         
-        pos1 = torch.tensor(np.linspace(-1, 1, x.size(2)), device=x.get_device())
+        pos1 = torch.tensor(np.linspace(-1, 1, x.size(2)), dtype=torch.float, device=x.get_device())
         pos1 = pos1.view(1, 1, pos1.size(0), 1).expand(x.size(0), 1, -1, x.size(3))
         
-        pos2 = torch.tensor(np.linspace(-1, 1, x.size(3)), device=x.get_device())
+        pos2 = torch.tensor(np.linspace(-1, 1, x.size(3)), dtype=torch.float, device=x.get_device())
         pos2 = pos2.view(1, 1, 1, pos2.size(0)).expand(x.size(0), 1, x.size(2), -1)
         
         x = torch.cat([x, c, pos1, pos2], dim=1)
