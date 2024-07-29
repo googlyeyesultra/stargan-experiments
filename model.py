@@ -25,7 +25,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         layers = []
-        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.Conv2d(3+c_dim+2, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         layers.append(nn.ReLU(inplace=True))
 
@@ -58,7 +58,14 @@ class Generator(nn.Module):
         # This is because instance normalization ignores the shifting (or bias) effect.
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
+        
+        pos1 = torch.tensor(np.linspace(-1, 1, x.size(2)))
+        pos1 = pos1.view(1, 1, pos1.size(0), 1).expand(x.size(0), 1, -1, x.size(3))
+        
+        pos2 = torch.tensor(np.linspace(-1, 1, x.size(3)))
+        pos2 = pos2.view(1, 1, 1, pos2.size(0)).expand(x.size(0), 1, x.size(2), -1)
+        
+        x = torch.cat([x, c, pos1, pos2], dim=1)
         return self.main(x)
 
 
