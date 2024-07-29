@@ -70,6 +70,6 @@ class Discriminator(nn.Module):
         
     def forward(self, x):
         out = self.vit(x)
-        out_src = out[:, 0].squeeze(1)
+        out_src = out[:, 0]
         out_cls = out[:, 1:]
         return out_src, out_cls
