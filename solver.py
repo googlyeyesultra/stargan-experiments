@@ -2,6 +2,7 @@ from model import Generator
 from model import Discriminator
 from torch.autograd import Variable
 from torchvision.utils import save_image
+from torch.backends.cuda import sdp_kernel
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -25,9 +26,7 @@ class Solver(object):
         self.c2_dim = config.c2_dim
         self.image_size = config.image_size
         self.g_conv_dim = config.g_conv_dim
-        self.d_conv_dim = config.d_conv_dim
         self.g_repeat_num = config.g_repeat_num
-        self.d_repeat_num = config.d_repeat_num
         self.lambda_cls = config.lambda_cls
         self.lambda_rec = config.lambda_rec
         self.lambda_gp = config.lambda_gp
@@ -73,10 +72,10 @@ class Solver(object):
         """Create a generator and a discriminator."""
         if self.dataset in ['CelebA', 'RaFD']:
             self.G = Generator(self.g_conv_dim, self.c_dim, self.g_repeat_num)
-            self.D = Discriminator(self.image_size, self.d_conv_dim, self.c_dim, self.d_repeat_num) 
+            self.D = Discriminator(self.image_size, self.c_dim) 
         elif self.dataset in ['Both']:
             self.G = Generator(self.g_conv_dim, self.c_dim+self.c2_dim+2, self.g_repeat_num)   # 2 for mask vector.
-            self.D = Discriminator(self.image_size, self.d_conv_dim, self.c_dim+self.c2_dim, self.d_repeat_num)
+            self.D = Discriminator(self.image_size, self.c_dim+self.c2_dim)
 
         self.g_optimizer = torch.optim.Adam(self.G.parameters(), self.g_lr, [self.beta1, self.beta2])
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), self.d_lr, [self.beta1, self.beta2])
@@ -240,27 +239,29 @@ class Solver(object):
             #                             2. Train the discriminator                              #
             # =================================================================================== #
 
-            # Compute loss with real images.
-            out_src, out_cls = self.D(x_real)
-            d_loss_real = - torch.mean(out_src)
-            d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
-
-            # Compute loss with fake images.
-            x_fake = self.G(x_real, c_trg)
-            out_src, out_cls = self.D(x_fake.detach())
-            d_loss_fake = torch.mean(out_src)
-
-            # Compute loss for gradient penalty.
-            alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
-            x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
-            out_src, _ = self.D(x_hat)
-            d_loss_gp = self.gradient_penalty(out_src, x_hat)
-
-            # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
-            self.reset_grad()
-            d_loss.backward()
-            self.d_optimizer.step()
+            #https://github.com/pytorch/pytorch/issues/117974
+            with sdp_kernel(enable_math=True, enable_flash=False, enable_mem_efficient=False):
+                # Compute loss with real images.
+                out_src, out_cls = self.D(x_real)
+                d_loss_real = - torch.mean(out_src)
+                d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
+    
+                # Compute loss with fake images.
+                x_fake = self.G(x_real, c_trg)
+                out_src, out_cls = self.D(x_fake.detach())
+                d_loss_fake = torch.mean(out_src)
+    
+                # Compute loss for gradient penalty.
+                alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
+                x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
+                out_src, _ = self.D(x_hat)
+                d_loss_gp = self.gradient_penalty(out_src, x_hat)
+    
+                # Backward and optimize.
+                d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_gp
+                self.reset_grad()
+                d_loss.backward()
+                self.d_optimizer.step()
 
             # Logging.
             loss = {}
