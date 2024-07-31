@@ -67,7 +67,7 @@ class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
     def __init__(self, image_size=128, c_dim=5):
         super(Discriminator, self).__init__()
-        self.model = torchvision.models.Regnet(num_classes=c_dim+1, norm_layer=nn.InstanceNorm2d)
+        self.model = torchvision.models.regnet.regnet_y_16gf(num_classes=c_dim+1, norm_layer=nn.InstanceNorm2d)
         
     def forward(self, x):
         out = self.model(x)
