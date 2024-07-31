@@ -4,7 +4,10 @@ Autoencoder ran in 10:16 on celeba. Original ran in 10:22. Probably not signific
 Autoencoder results very similar but probably a tiny bit worse. Can try FID/etc. to actually evaluate.
     Certainly close enough to be worth considering.
     
-Upsample and deg_1 have very poor performance. Upsample with deg_2 and deg_3 seems to work okay.
+Deg_1 very poor performance.
+   
+Upscale is somewhat better with a full run but still not ideal.
+    
 Bilinear and learned bilinear both perform poorly.
 
 Degree 3 is sometimes better than original, though there are occasional spots it visibly misbehaves a little bit.]
@@ -22,5 +25,5 @@ Polynomials above degree 3 don't really improve anything over degree 3. Maaaaybe
 
 Adding positional information seems to have fairly minor impact.
 Slight autoencoder seems to have minor impact.
-10 discrim cycles/gen cycle seems to be a bit better.
+10 discrim cycles/gen cycle seems to be a bit better on deg_3. Very similar on baseline.
 Nearest neighbor vs. bilinear seems to be fairly minor.
