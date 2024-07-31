@@ -64,7 +64,7 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        num = x[:,1:].unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        num = x[:,3:].unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
 
