@@ -67,7 +67,7 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super(Discriminator, self).__init__()
         layers = []
-        layers.append(nn.Conv2d(3, conv_dim, kernel_size=4, stride=2, padding=1))
+        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=4, stride=2, padding=1))
         layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
@@ -76,15 +76,12 @@ class Discriminator(nn.Module):
             layers.append(nn.LeakyReLU(0.01))
             curr_dim = curr_dim * 2
 
-        self.main = nn.Sequential(*layers)
-        self.final_dim = c_dim * 4 + 2  # Arbitrary, but should scale up with number of classes.
         kernel_size = int(image_size / np.power(2, repeat_num))
-        self.conv = nn.Conv2d(curr_dim, self.final_dim, kernel_size=kernel_size)
-        self.combine = nn.Bilinear(self.final_dim, c_dim*2, 1, bias=False)
+        layers.append(nn.Conv2d(curr_dim, 1, kernel_size=kernel_size))
+        self.main = nn.Sequential(*layers)
         
-    def forward(self, x, labels):
-        h = self.main(x)
-        out = self.conv(h)
-        labels = torch.cat((labels, 1-labels), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
-        labels_normed = labels / (labels.sum(1, keepdim=True) + 1e-8)
-        return self.combine(out.view(out.size(0), self.final_dim), labels_normed)
+    def forward(self, x, c):
+        c = c.view(c.size(0), c.size(1), 1, 1)
+        c = c.repeat(1, 1, x.size(2), x.size(3))
+        x = torch.cat([x, c], dim=1)
+        return self.main(x)
