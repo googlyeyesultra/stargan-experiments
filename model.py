@@ -64,7 +64,7 @@ class Generator(nn.Module):
         coeffs = x.unflatten(dim=1, sizes=(2, 3))
         mult = coeffs[:,0,:]
         add = coeffs[:,1,:]
-        return ((im * mult).atanh() + add)
+        return ((im * mult).atanh() + add).tanh()
 
 
 class Discriminator(nn.Module):
