@@ -23,9 +23,6 @@ class Generator(nn.Module):
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
-        
-        self.poly_degree = poly_degree
-        self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
