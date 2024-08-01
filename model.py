@@ -62,9 +62,9 @@ class Generator(nn.Module):
         x = self.layers(x)
         
         coeffs = x.unflatten(dim=1, sizes=(2, 3))
-        mult = coeffs[:,0,:].unsqueeze(1)
-        add = coeffs[:,1,:].unsqueeze(1)
-        return ((im + mult).atanh() + add)
+        mult = coeffs[:,0,:]
+        add = coeffs[:,1,:]
+        return ((im * mult).atanh() + add)
 
 
 class Discriminator(nn.Module):
