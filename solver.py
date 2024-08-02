@@ -270,7 +270,7 @@ class Solver(object):
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
                 out_src, out_cls = self.D(x_fake)
-                g_loss_fake = -out_src
+                g_loss_fake = -out_src.mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Target-to-original domain.
