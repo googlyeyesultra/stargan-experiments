@@ -258,8 +258,8 @@ class Solver(object):
 
             # Logging.
             loss = {}
-            loss['D/loss_real'] = d_loss_real.item()
-            loss['D/loss_fake'] = d_loss_fake.item()
+            loss['D/loss_real'] = d_loss_real
+            loss['D/loss_fake'] = d_loss_fake
             loss['D/loss_cls'] = d_loss_cls.item()
             
             # =================================================================================== #
@@ -284,7 +284,7 @@ class Solver(object):
                 self.g_optimizer.step()
 
                 # Logging.
-                loss['G/loss_fake'] = g_loss_fake.item()
+                loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
                 loss['G/loss_cls'] = g_loss_cls.item()
 
