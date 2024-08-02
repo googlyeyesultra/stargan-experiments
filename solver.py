@@ -249,7 +249,7 @@ class Solver(object):
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src, out_cls = self.D(x_fake.detach())
-            d_loss_fake = (1 - out_src.sigmoid() + 1e-8).log().mean()
+            d_loss_fake = -(1 - out_src.sigmoid() + 1e-8).log().mean()
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls
