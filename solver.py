@@ -207,7 +207,8 @@ class Solver(object):
         print('Start training...')
         start_time = time.time()
         for i in range(start_iters, self.num_iters):
-
+            self.D.train()
+            self.G.train()
             # =================================================================================== #
             #                             1. Preprocess input data                                #
             # =================================================================================== #
@@ -242,13 +243,13 @@ class Solver(object):
 
             # Compute loss with real images.
             out_src, out_cls = self.D(x_real)
-            d_loss_real = F.binary_cross_entropy_with_logits(out_src, torch.ones_like(out_src))
+            d_loss_real = -(out_src.sigmoid() + 1e-8).log().mean()
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src, out_cls = self.D(x_fake.detach())
-            d_loss_fake = F.binary_cross_entropy_with_logits(out_src, torch.zeros_like(out_src))
+            d_loss_fake = (1 - out_src.sigmoid() + 1e-8).log().mean()
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls
@@ -270,7 +271,7 @@ class Solver(object):
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
                 out_src, out_cls = self.D(x_fake)
-                g_loss_fake = F.binary_cross_entropy_with_logits(out_src, torch.ones_like(out_src))
+                g_loss_fake = -(out_src.sigmoid() + 1e-8).log().mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Target-to-original domain.
@@ -292,6 +293,9 @@ class Solver(object):
             #                                 4. Miscellaneous                                    #
             # =================================================================================== #
 
+            self.D.eval()
+            self.G.eval()
+            
             # Print out training information.
             if (i+1) % self.log_step == 0:
                 et = time.time() - start_time
