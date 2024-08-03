@@ -10,6 +10,5 @@ class Logger(object):
 
     def scalar_summary(self, tag, value, step):
         """Add scalar summary."""
-        with self.writer.as_default():
-            self.writer.add_scalar(tag, value, step=step)
-            self.writer.flush()
+        self.writer.add_scalar(tag, value, step=step)
+        self.writer.flush()
