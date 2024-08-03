@@ -1,5 +1,6 @@
 Original has convolution artifacts presumably from Conv2dTranspose.
 
+<<<<<<< HEAD
 Autoencoder ran in 10:16 on celeba. Original ran in 10:22. Probably not significant - running on shared machines.
 Autoencoder results very similar but probably a tiny bit worse. Can try FID/etc. to actually evaluate.
     Certainly close enough to be worth considering.
@@ -27,3 +28,11 @@ Adding positional information seems to have fairly minor impact.
 Slight autoencoder seems to have minor impact.
 10 discrim cycles/gen cycle seems to be a bit better on deg_3. Very similar on baseline.
 Nearest neighbor vs. bilinear seems to be fairly minor.
+=======
+Testing on horse2zebra.
+Note that horse2zebra test is before I removed bias=False from conv2d.
+Kinda similar results on horse2zebra, similar runtimes. Both need more time to actually work well.
+
+
+note that I have increased discrim cycles/gen cycle to 10 (from 5)
+>>>>>>> deg_3
