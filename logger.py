@@ -12,3 +12,6 @@ class Logger(object):
         """Add scalar summary."""
         self.writer.add_scalar(tag, value, global_step=step)
         self.writer.flush()
+        
+    def add_im(self, tag, im, step):
+        self.writer.add_image(tag, im, global_step=step)
