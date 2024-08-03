@@ -323,7 +323,7 @@ class Solver(object):
                     im = self.denorm(x_concat.data.cpu())
                     save_image(im, sample_path, nrow=1, padding=0)
                     if self.use_tensorboard:
-                        self.logger.add_im("Samples", value, i+1)
+                        self.logger.add_im("Samples", im, i+1)
                         
                     print('Saved real and fake images into {}...'.format(sample_path))
 
