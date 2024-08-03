@@ -1,7 +1,7 @@
 from model import Generator
 from model import Discriminator
 from torch.autograd import Variable
-from torchvision.utils import save_image
+from torchvision.utils import save_image, make_grid
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -320,8 +320,8 @@ class Solver(object):
                         x_fake_list.append(self.G(x_fixed, c_fixed))
                     x_concat = torch.cat(x_fake_list, dim=3)
                     sample_path = os.path.join(self.sample_dir, '{}-images.jpg'.format(i+1))
-                    im = self.denorm(x_concat.data.cpu())
-                    save_image(im, sample_path, nrow=1, padding=0)
+                    im = make_grid(self.denorm(x_concat.data.cpu()), nrow=1, padding=0)
+                    save_image(im, sample_path)
                     if self.use_tensorboard:
                         self.logger.add_im("Samples", im, i+1)
                         
