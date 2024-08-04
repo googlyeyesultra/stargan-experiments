@@ -8,6 +8,7 @@ import os
 import time
 import datetime
 
+from DiffAugment_pytorch import DiffAugment
 
 class Solver(object):
     """Solver for training and testing StarGAN."""
@@ -173,6 +174,8 @@ class Solver(object):
         elif self.dataset == 'RaFD':
             data_loader = self.rafd_loader
 
+        aug_pol = "translation,cutout"  # Diffaug policy. Not using color.
+
         # Fetch fixed inputs for debugging.
         data_iter = iter(data_loader)
         x_fixed, c_org = next(data_iter)
@@ -227,13 +230,13 @@ class Solver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
-            out_src, out_cls = self.D(x_real)
+            out_src, out_cls = self.D(DiffAugment(x_real, policy=aug_pol))
             d_loss_real = -min(0, out_src.mean()-1)
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
-            out_src, out_cls = self.D(x_fake.detach())
+            out_src, out_cls = self.D(DiffAugment(x_fake.detach(), policy=aug_pol))
             d_loss_fake = -min(0, -1 - out_src.mean())
 
             # Backward and optimize.
@@ -255,7 +258,7 @@ class Solver(object):
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
-                out_src, out_cls = self.D(x_fake)
+                out_src, out_cls = self.D(DiffAugment(x_fake, policy=aug_pol))
                 g_loss_fake = -out_src.mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
