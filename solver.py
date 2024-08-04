@@ -261,7 +261,7 @@ class Solver(object):
 
                 # Identity loss (instead of cycle consistency).
                 x_reconst = self.G(x_real, c_org)
-                g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
+                g_loss_rec = F.mse_loss(x_real, x_reconst)
 
                 # Backward and optimize.
                 g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
