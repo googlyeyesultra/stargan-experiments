@@ -81,11 +81,10 @@ class Solver(object):
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), self.d_lr, [self.beta1, self.beta2])
         self.print_network(self.G, 'G')
         self.print_network(self.D, 'D')
-            
+        
         self.G.to(self.device)
         self.D.to(self.device)
-        self.G = torch.nn.DataParallel(self.G)
-        self.D = torch.nn.DataParallel(self.D)
+
 
     def print_network(self, model, name):
         """Print out the network information."""
