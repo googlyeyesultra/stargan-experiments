@@ -29,7 +29,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(nn.Conv2d(3 + c_dim*2, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.layers.append(nn.ReLU(inplace=True))
 
@@ -55,14 +55,16 @@ class Generator(nn.Module):
 
         self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
 
-    def forward(self, im, c):
+    def forward(self, im, c, c_org):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
+        c_org = c_org.view(c_org.size(0), c_org.size(1), 1, 1)
+        c_org = c_org.repeat(1, 1, im.size(2), im.size(3))
+        x = torch.cat([im, c, c_org], dim=1)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))

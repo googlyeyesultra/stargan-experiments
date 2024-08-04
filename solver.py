@@ -177,6 +177,7 @@ class Solver(object):
         data_iter = iter(data_loader)
         x_fixed, c_org = next(data_iter)
         x_fixed = x_fixed.to(self.device)
+        c_fixed_org = c_org
         c_fixed_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
 
         # Learning rate cache for decaying.
@@ -232,7 +233,7 @@ class Solver(object):
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
-            x_fake = self.G(x_real, c_trg)
+            x_fake = self.G(x_real, c_trg, c_org)
             out_src, out_cls = self.D(x_fake.detach())
             d_loss_fake = -min(0, -1 - out_src.mean())
 
@@ -254,13 +255,13 @@ class Solver(object):
             
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
-                x_fake = self.G(x_real, c_trg)
+                x_fake = self.G(x_real, c_trg, c_org)
                 out_src, out_cls = self.D(x_fake)
                 g_loss_fake = -out_src.mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Identity loss (instead of cycle consistency).
-                x_reconst = self.G(x_real, c_org)
+                x_reconst = self.G(x_real, c_org, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
@@ -296,7 +297,7 @@ class Solver(object):
                 with torch.no_grad():
                     x_fake_list = [x_fixed]
                     for c_fixed in c_fixed_list:
-                        x_fake_list.append(self.G(x_fixed, c_fixed))
+                        x_fake_list.append(self.G(x_fixed, c_fixed, c_fixed_org))
                     x_concat = torch.cat(x_fake_list, dim=3)
                     sample_path = os.path.join(self.sample_dir, '{}-images.jpg'.format(i+1))
                     im = make_grid(self.denorm(x_concat.data.cpu()), nrow=1, padding=0)
