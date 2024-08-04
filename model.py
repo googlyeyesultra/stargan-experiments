@@ -60,7 +60,15 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
-        return self.main(x)ernel_size=4, stride=2, padding=1)
+        return self.main(x)
+    
+    
+class Discriminator(nn.Module):
+    """Discriminator network with PatchGAN."""
+    def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
+        super(Discriminator, self).__init__()
+        layers = []
+        conv = nn.Conv2d(3, conv_dim, kernel_size=4, stride=2, padding=1)
         spectral_norm(conv)
         layers.append(conv)
         layers.append(nn.LeakyReLU(0.01))
