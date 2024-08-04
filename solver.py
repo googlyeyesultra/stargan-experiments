@@ -85,6 +85,8 @@ class Solver(object):
             
         self.G.to(self.device)
         self.D.to(self.device)
+        self.G = torch.nn.DataParallel(self.G)
+        self.D = torch.nn.DataParallel(self.D)
 
     def print_network(self, model, name):
         """Print out the network information."""
