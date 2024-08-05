@@ -49,13 +49,11 @@ class Generator(nn.Module):
         for i in range(repeat_num):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
             self.layers.append(AddNoise())
-            curr_dim += 2
 
         # Up-sampling layers.
         for i in range(2):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             self.layers.append(AddNoise())
-            curr_dim += 2
             self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
             self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
             self.layers.append(nn.ReLU(inplace=True))
