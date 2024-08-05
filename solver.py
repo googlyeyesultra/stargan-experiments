@@ -177,7 +177,7 @@ class Solver(object):
         data_iter = iter(data_loader)
         x_fixed, c_org = next(data_iter)
         x_fixed = x_fixed.to(self.device)
-        c_fixed_org = c_org
+        c_fixed_org = c_org.to(self.device)
         c_fixed_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
 
         # Learning rate cache for decaying.
