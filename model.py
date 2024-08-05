@@ -21,7 +21,7 @@ class ResidualBlock(nn.Module):
 
 class AddNoiseChannels(nn.Module):
     def forward(self, im):
-        noise = torch.normal_(im.new(im.size(0), 2, im.size(2), im.size(3)))  # Two channels keeps it divisible by 2.
+        noise = im.new(im.size(0), 2, im.size(2), im.size(3)).normal_()  # Two channels keeps it divisible by 2.
         return torch.cat([im, noise], dim=1)
 
 class Generator(nn.Module):
