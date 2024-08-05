@@ -19,10 +19,10 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return x + self.main(x)
 
-class AddNoiseChannels(nn.Module):
+class AddNoise(nn.Module):
     def forward(self, im):
-        noise = im.new(im.size(0), 2, im.size(2), im.size(3)).normal_()  # Two channels keeps it divisible by 2.
-        return torch.cat([im, noise], dim=1)
+        noise = torch.randn_like(im) / 10
+        return im + noise
 
 class Generator(nn.Module):
     """Generator network."""
@@ -48,13 +48,13 @@ class Generator(nn.Module):
         # Bottleneck layers.
         for i in range(repeat_num):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
-            self.layers.append(AddNoiseChannels())
+            self.layers.append(AddNoise())
             curr_dim += 2
 
         # Up-sampling layers.
         for i in range(2):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(AddNoiseChannels())
+            self.layers.append(AddNoise())
             curr_dim += 2
             self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
             self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
