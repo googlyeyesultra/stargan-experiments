@@ -81,6 +81,8 @@ class Generator(nn.Module):
         x = self.mid(x)
         
         for u, d in zip(self.ups, down_results):
+            print(x.size())
+            print(d.size())
             stacked = torch.cat([x, d], dim=1)
             x = u(stacked)
         
