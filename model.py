@@ -28,32 +28,41 @@ class Generator(nn.Module):
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
 
-        self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        self.layers.append(nn.ReLU(inplace=True))
+        self.initial = nn.Sequential()
+        self.initial.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.initial.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        self.initial.append(nn.ReLU(inplace=True))
 
+        self.downs = nn.ModuleList()
+        
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
+            down = nn.Sequential()
+            down.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            down.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            down.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
+            self.downs.append(down)
 
+        self.mid = nn.Sequential()
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.mid.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
+        self.ups = nn.ModuleList()
+        curr_dim *= 2  # Stacking downsampling features on doubles number of channels.
         # Up-sampling layers.
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
+            up = nn.Sequential()
+            up.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            up.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
+            up.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            up.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
+            self.ups.append(up)
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.final = nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True)
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -63,8 +72,18 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
-
+        x = self.initial(x)
+        down_results = []
+        for d in self.downs:
+            x = d(x)
+            down_results.append(x.clone())
+        
+        x = self.mid(x)
+        
+        for u, d in zip(self.ups, down_results):
+            stacked = torch.cat([x, d], dim=1)
+            x = u(stacked)
+        
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
