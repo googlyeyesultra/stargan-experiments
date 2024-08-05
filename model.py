@@ -65,7 +65,7 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
         
-        alpha = x[:,0,:,:].unsqueeze(1).expand(x.size(0), 3, x.size(2), x.size(3))
+        alpha = F.sigmoid(x[:,0,:,:]).unsqueeze(1).expand(x.size(0), 3, x.size(2), x.size(3))
         gen_img = x[:,1:4,:,:]
         poly = x[:,4:,:,:]
         num = poly.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
