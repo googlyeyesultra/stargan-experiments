@@ -84,6 +84,8 @@ class Generator(nn.Module):
             stacked = torch.cat([x, d], dim=1)
             x = u(stacked)
         
+        x = self.final(x)
+        
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
