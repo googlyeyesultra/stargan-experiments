@@ -66,7 +66,7 @@ class Generator(nn.Module):
         x = self.layers(x)
         
         alpha = F.sigmoid(x[:,0,:,:]).unsqueeze(1).expand(x.size(0), 3, x.size(2), x.size(3))
-        gen_img = x[:,1:4,:,:]
+        gen_img = F.tanh(x[:,1:4,:,:])
         poly = x[:,4:,:,:]
         num = poly.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
