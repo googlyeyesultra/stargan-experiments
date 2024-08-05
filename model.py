@@ -51,13 +51,13 @@ class Generator(nn.Module):
             self.mid.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         self.ups = nn.ModuleList()
-        curr_dim *= 2  # Stacking downsampling features on doubles number of channels.
+        curr_dim *= 2  # Stacking downsampling features doubles number of channels.
         # Up-sampling layers.
         for i in range(2):
             up = nn.Sequential()
             up.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            up.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            up.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            up.append(nn.Conv2d(curr_dim, curr_dim//4, kernel_size=5, padding=2))
+            up.append(nn.InstanceNorm2d(curr_dim//4, affine=True, track_running_stats=True))
             up.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
             self.ups.append(up)
@@ -77,6 +77,7 @@ class Generator(nn.Module):
         for d in self.downs:
             x = d(x)
             down_results.append(x.clone())
+            
         x = self.mid(x)
         
         for u, d in zip(self.ups, down_results[::-1]):
