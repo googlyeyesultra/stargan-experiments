@@ -77,12 +77,9 @@ class Generator(nn.Module):
         for d in self.downs:
             x = d(x)
             down_results.append(x.clone())
-        
         x = self.mid(x)
         
-        for u, d in zip(self.ups, down_results):
-            print(x.size())
-            print(d.size())
+        for u, d in zip(self.ups, down_results[::-1]):
             stacked = torch.cat([x, d], dim=1)
             x = u(stacked)
         
