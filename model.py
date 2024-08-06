@@ -62,7 +62,7 @@ class Generator(nn.Module):
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
 
-        self.initial = nn.Conv2d(3 + c_dim*2, conv_dim, kernel_size=7, stride=1, padding=3, bias=False)
+        self.initial = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False)
         self.first_norm = ConditionalInstanceNorm2d(conv_dim, c_dim)
         
         self.layers = nn.Sequential()
