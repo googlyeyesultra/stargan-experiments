@@ -66,7 +66,7 @@ class Generator(nn.Module):
         x = self.layers(x)
 
         alpha = F.sigmoid(x[:,0,:,:]).unsqueeze(1).expand(x.size(0), 3, x.size(2), x.size(3))
-        num = x[:,1:4,:,:].unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        num = x[:,1:,:,:].unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
         
