@@ -37,6 +37,7 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         c_org = torch.cat([c_org, c_org.logical_not()], dim=1)
         for n in range(im.size(0)):
             for c in range(self.c_dim * 2):
+                print(c_org[n, c])
                 if c_org[n, c]:
                     self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
                     self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
