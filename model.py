@@ -53,7 +53,7 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1) + 1, kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -65,10 +65,12 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        alpha = F.sigmoid(x[:,0,:,:]).unsqueeze(1).expand(x.size(0), 3, x.size(2), x.size(3))
+        num = x[:,1:4,:,:].unflatten(dim=1, sizes=(self.poly_degree+1, 3))
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
-
+        
+        im = im * (1-alpha)
         pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
         return (pows * coeffs).sum(1)
 
