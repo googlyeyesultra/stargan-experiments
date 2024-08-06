@@ -25,6 +25,7 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
     def __init__(self, channels, c_dim, momentum=.1):
         super().__init__()
         self.momentum = momentum  # Maybe these need to be buffers. TODO
+        self.channels = channels
         self.c_dim = c_dim
         self.register_buffer("running_mean", torch.zeros((2*c_dim, channels)))
         self.register_buffer("running_std", torch.ones((2*c_dim, channels)))
@@ -41,12 +42,10 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
                     self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
                     self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
     
-        trg_std = torch.empty((im.size(0), 3))
-        trg_mean = torch.empty((im.size(0), 3))
+        trg_std = torch.empty((im.size(0), self.channels))
+        trg_mean = torch.empty((im.size(0), self.channels))
         
         for n in range(im.size(0)):
-            print(trg_std[n].size())
-            print(self.running_std[c_trg[n]].mean(dim=0).size())
             trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
             trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
         
@@ -65,7 +64,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         self.initial = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False)
-        self.first_norm = ConditionalInstanceNorm2d(conv_dim, c_dim)
+        self.first_norm = ConditionalInstanceNorm2d(conv_dim, c_dim)  # TODO this is kinda weird with the label channels.
         
         self.layers = nn.Sequential()
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
