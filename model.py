@@ -45,6 +45,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         trg_mean = torch.empty((im.size(0), 3))
         
         for n in range(im.size(0)):
+            print(trg_std[n].size())
+            print(self.running_std[c_trg[n]].mean(dim=0).size())
             trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
             trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
         
