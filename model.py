@@ -67,8 +67,7 @@ class Generator(nn.Module):
         self.first_norm = ConditionalInstanceNorm2d(conv_dim, c_dim)  # TODO this is kinda weird with the label channels.
         
         self.layers = nn.Sequential()
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        self.layers.append(nn.ReLU(inplace=True))
+        self.layers.append(nn.ReLU())
 
         # Down-sampling layers.
         curr_dim = conv_dim
