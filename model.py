@@ -37,7 +37,6 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         c_org = torch.cat([c_org, c_org.logical_not()], dim=1)
         for n in range(im.size(0)):
             for c in range(self.c_dim * 2):
-                print(c_org[n, c])
                 if c_org[n, c]:
                     self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
                     self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
@@ -97,11 +96,9 @@ class Generator(nn.Module):
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, im.size(2), im.size(3))
-        c_org = c_org.view(c_org.size(0), c_org.size(1), 1, 1)
-        c_org = c_org.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c, c_org], dim=1)
+        c_exp = c.view(c.size(0), c.size(1), 1, 1)
+        c_exp = c_exp.repeat(1, 1, im.size(2), im.size(3))
+        x = torch.cat([im, c_exp], dim=1)
         x = self.initial(x)
         x = self.first_norm(x, c, c_org)
         x = self.layers(x)
