@@ -47,16 +47,20 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         
             trg_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
             trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+            org_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+            org_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
             
             for n in range(im.size(0)):
+                org_std[n] = self.running_std[c_org[n]].mean(dim=0)
+                org_mean[n] = self.running_mean[c_org[n]].mean(dim=0)
                 trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
                 trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
-            
-            
+
             def broadcast(x):
                 return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
     
-        return ((im-broadcast(mean)) / broadcast(std)) * broadcast(trg_std) + broadcast(trg_mean)
+        new_im = ((im-broadcast(org_mean)) / broadcast(org_std)) * broadcast(trg_std) + broadcast(trg_mean)
+        return torch.cat([im, new_im], dim=1)
 
 
 class Generator(nn.Module):
@@ -82,6 +86,7 @@ class Generator(nn.Module):
         self.initial.append(nn.Conv2d(curr_dim, curr_dim, kernel_size=3, padding=1, bias=False))
         
         self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
+        curr_dim *= 2
         curr_dim += c_dim
 
         self.layers = nn.Sequential()
