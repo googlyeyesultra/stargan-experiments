@@ -93,7 +93,8 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Tanh())
 
     def forward(self, im, c, c_org):
         # Replicate spatially and concatenate domain information.
@@ -108,13 +109,7 @@ class Generator(nn.Module):
         x = torch.cat([x, c_exp], dim=1)
         
         x = self.layers(x)
-
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
-        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
-        coeffs = num / denom
-
-        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
-        return (pows * coeffs).sum(1)
+        return x
 
 
 class Discriminator(nn.Module):
