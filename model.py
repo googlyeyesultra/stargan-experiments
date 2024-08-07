@@ -54,7 +54,7 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
             def broadcast(x):
                 return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
     
-            return ((im-broadcast(mean)) / broadcast(std)) * broadcast(trg_std) + broadcast(trg_mean)
+        return ((im-broadcast(mean)) / broadcast(std)) * broadcast(trg_std) + broadcast(trg_mean)
 
 
 class Generator(nn.Module):
