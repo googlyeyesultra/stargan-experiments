@@ -46,8 +46,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
         
         for n in range(im.size(0)):
-            trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
-            trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
+            trg_std[n] = self.running_std[c_trg[n]].mean(dim=0).detach()
+            trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0).detach()
         
         
         def broadcast(x):
