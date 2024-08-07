@@ -22,10 +22,11 @@ class ResidualBlock(nn.Module):
 
 class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
     # TODO this whole thing is probably very inefficient.
-    def __init__(self, channels, c_dim, momentum=.1):
+    def __init__(self, channels, c_dim, momentum=.1, epsilon=1e-8):
         super().__init__()
         self.momentum = momentum
         self.channels = channels
+        self.epsilon = epsilon
         self.c_dim = c_dim
         self.register_buffer("running_mean", torch.zeros((2*c_dim, channels), requires_grad=False))
         self.register_buffer("running_std", torch.ones((2*c_dim, channels), requires_grad=False))
@@ -33,6 +34,7 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
     def forward(self, im, c_trg, c_org):
         with torch.no_grad():
             std, mean = torch.std_mean(im, dim=(2,3))
+            std += self.epsilon
             c_trg = c_trg.to(torch.bool)
             c_org = c_org.to(torch.bool)
             c_trg = torch.cat([c_trg, c_trg.logical_not()], dim=1)
