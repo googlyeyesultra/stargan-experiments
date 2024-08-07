@@ -47,6 +47,12 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         
             trg_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
             trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+            org_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+            org_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+            
+            for n in range(im.size(0)):
+                org_std[n] = self.running_std[c_org[n]].mean(dim=0)
+                org_mean[n] = self.running_mean[c_org[n]].mean(dim=0)
             
             for n in range(im.size(0)):
                 trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
@@ -56,7 +62,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
             def broadcast(x):
                 return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
     
-        return ((im-broadcast(mean)) / broadcast(std)) * broadcast(trg_std) + broadcast(trg_mean)
+        return ((im-broadcast(org_mean)) / broadcast(org_std)) * broadcast(trg_std) + broadcast(trg_mean)
+
 
 
 class Generator(nn.Module):
