@@ -95,7 +95,7 @@ def get_loader(image_dir, attr_path, selected_attrs, crop_size=178, image_size=1
     weights = torch.empty(len(dataset))
     for i in range(len(dataset)):
         _, labels = dataset[i]
-        weights[i] = (labels - label_frac).pow(2).sum()
+        weights[i] = (labels - label_frac).abs().sum()
     
     # Note that we shouldn't be doing weighted sampler in test mode probably TODO
     sampler = data.WeightedRandomSampler(weights, len(dataset), generator=torch.Generator().manual_seed(23))
