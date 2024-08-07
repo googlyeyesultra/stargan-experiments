@@ -57,13 +57,12 @@ class Generator(nn.Module):
 
         self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
 
-    def forward(self, im, c, c_org):
+    def forward(self, im, c, c_org):  # TODO we're not actually using c_org now.
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         x = self.initial(im)
-        x = self.cond_norm(x, c, c_org)
         
         c_exp = c.view(c.size(0), c.size(1), 1, 1)
         c_exp = c_exp.repeat(1, 1, x.size(2), x.size(3))
