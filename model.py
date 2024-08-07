@@ -77,6 +77,8 @@ class Generator(nn.Module):
             self.initial.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
+        self.initial.append(nn.Conv2d(curr_dim, curr_dim, kernel_size=3, padding=1, bias=False))
+        
         self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
         curr_dim += c_dim
 
