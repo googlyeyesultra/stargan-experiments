@@ -85,7 +85,7 @@ def get_loader(image_dir, attr_path, selected_attrs, crop_size=178, image_size=1
     elif dataset == 'RaFD':
         dataset = ImageFolder(image_dir, transform)
 
-    label_frac = torch.zeros(len(selected_attrs), dtype=torch.float)
+    label_frac = torch.zeros(len(selected_attrs), dtype=torch.float)  # TODO this doesn't work outside of CelebA mode.
     for d in dataset:
         _, labels = d
         label_frac += labels
