@@ -24,7 +24,7 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
     # TODO this whole thing is probably very inefficient.
     def __init__(self, channels, c_dim, momentum=.1):
         super().__init__()
-        self.momentum = momentum  # Maybe these need to be buffers. TODO
+        self.momentum = momentum
         self.channels = channels
         self.c_dim = c_dim
         self.register_buffer("running_mean", torch.zeros((2*c_dim, channels)))
@@ -48,6 +48,9 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         for n in range(im.size(0)):
             trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
             trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
+            
+        trg_std = trg_std.detach()
+        trg_mean = trg_mean.detach()
         
         def broadcast(x):
             return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
