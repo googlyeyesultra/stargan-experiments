@@ -62,21 +62,23 @@ class Generator(nn.Module):
         
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
-
-        self.initial = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False)
-        self.first_norm = ConditionalInstanceNorm2d(conv_dim, c_dim)  # TODO this is kinda weird with the label channels.
-        
-        self.layers = nn.Sequential()
-        self.layers.append(nn.ReLU())
+        self.intiial = nn.Sequential()
+        self.initial.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.initial.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))        
+        self.initial.append(nn.ReLU())
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
+            self.initial.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.initial.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            self.initial.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
+        curr_dim += c_dim
+        self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
+        
+        self.layers = nn.Sequential()
         # Bottleneck layers.
         for i in range(repeat_num):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
@@ -98,9 +100,10 @@ class Generator(nn.Module):
         
         c_exp = c.view(c.size(0), c.size(1), 1, 1)
         c_exp = c_exp.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c_exp], dim=1)
-        x = self.initial(x)
-        x = self.first_norm(x, c, c_org)
+        x = self.initial(im)
+        
+        x = torch.cat([x, c_exp], dim=1)
+        x = self.cond_norm(x, c, c_org)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
