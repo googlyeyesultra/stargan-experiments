@@ -85,8 +85,21 @@ def get_loader(image_dir, attr_path, selected_attrs, crop_size=178, image_size=1
     elif dataset == 'RaFD':
         dataset = ImageFolder(image_dir, transform)
 
+    label_frac = torch.zeros(len(selected_attrs), dtype=torch.float)
+    for d in dataset:
+        _, labels = d
+        label_frac += labels
+        
+    label_frac /= len(dataset)
+        
+    weights = torch.empty(len(dataset))
+    for i in range(len(dataset)):
+        _, labels = dataset[i]
+        weights[i] = (labels - label_frac).sum() ** 2
+        
+    sampler = data.WeightedRandomSampler(weights, len(dataset), generator=torch.Generator().manual_seed(23))
     data_loader = data.DataLoader(dataset=dataset,
                                   batch_size=batch_size,
-                                  shuffle=(mode=='train'),
-                                  num_workers=num_workers, generator=torch.Generator().manual_seed(23))
+                                  sampler=sampler,
+                                  num_workers=num_workers)
     return data_loader
