@@ -42,8 +42,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
                     self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
                     self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
     
-        trg_std = torch.empty((im.size(0), self.channels), device=im.get_device())
-        trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device())
+        trg_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+        trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
         
         for n in range(im.size(0)):
             trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
