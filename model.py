@@ -42,18 +42,13 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
                     self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
                     self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
     
-        trg_std_o = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
-        trg_mean_o = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+        trg_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
+        trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
         
         for n in range(im.size(0)):
-            trg_std_o[n] = self.running_std[c_trg[n]].mean(dim=0)
-            trg_mean_o[n] = self.running_mean[c_trg[n]].mean(dim=0)
+            trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
+            trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
         
-        trg_std = trg_std_o.detach()
-        trg_mean = trg_mean_o.detach()
-        
-        del trg_std_o
-        del trg_mean_o
         
         def broadcast(x):
             return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
@@ -81,9 +76,9 @@ class Generator(nn.Module):
             self.initial.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
-        curr_dim += c_dim
         self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
-        
+        curr_dim += c_dim
+
         self.layers = nn.Sequential()
         # Bottleneck layers.
         for i in range(repeat_num):
@@ -105,11 +100,12 @@ class Generator(nn.Module):
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         x = self.initial(im)
+        x = self.cond_norm(x, c, c_org)
         
         c_exp = c.view(c.size(0), c.size(1), 1, 1)
         c_exp = c_exp.repeat(1, 1, x.size(2), x.size(3))
         x = torch.cat([x, c_exp], dim=1)
-        x = self.cond_norm(x, c, c_org)
+        
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
