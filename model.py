@@ -20,45 +20,6 @@ class ResidualBlock(nn.Module):
         return x + self.main(x)
 
 
-class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
-    # TODO this whole thing is probably very inefficient.
-    def __init__(self, channels, c_dim, momentum=.1, epsilon=1e-8):
-        super().__init__()
-        self.momentum = momentum
-        self.channels = channels
-        self.epsilon = epsilon
-        self.c_dim = c_dim
-        self.register_buffer("running_mean", torch.zeros((2*c_dim, channels), requires_grad=False))
-        self.register_buffer("running_std", torch.ones((2*c_dim, channels), requires_grad=False))
-        
-    def forward(self, im, c_trg, c_org):
-        with torch.no_grad():
-            std, mean = torch.std_mean(im, dim=(2,3))
-            std += self.epsilon
-            c_trg = c_trg.to(torch.bool)
-            c_org = c_org.to(torch.bool)
-            c_trg = torch.cat([c_trg, c_trg.logical_not()], dim=1)
-            c_org = torch.cat([c_org, c_org.logical_not()], dim=1)
-            for n in range(im.size(0)):
-                for c in range(self.c_dim * 2):
-                    if c_org[n, c]:
-                        self.running_std[c] = self.running_std[c] * (1-self.momentum) + std[n] * self.momentum
-                        self.running_mean[c] = self.running_mean[c] * (1-self.momentum) + mean[n] * self.momentum
-        
-            trg_std = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
-            trg_mean = torch.empty((im.size(0), self.channels), device=im.get_device(), requires_grad=False)
-            
-            for n in range(im.size(0)):
-                trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
-                trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
-            
-            
-            def broadcast(x):
-                return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
-    
-        return ((im-broadcast(mean)) / broadcast(std)) * broadcast(trg_std) + broadcast(trg_mean)
-
-
 class Generator(nn.Module):
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
@@ -79,7 +40,6 @@ class Generator(nn.Module):
             self.initial.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
-        self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
         curr_dim += c_dim
 
         self.layers = nn.Sequential()
