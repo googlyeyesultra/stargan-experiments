@@ -27,8 +27,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
         self.momentum = momentum
         self.channels = channels
         self.c_dim = c_dim
-        self.register_buffer("running_mean", torch.zeros((2*c_dim, channels)))
-        self.register_buffer("running_std", torch.ones((2*c_dim, channels)))
+        self.register_buffer("running_mean", torch.zeros((2*c_dim, channels), requires_grad=False))
+        self.register_buffer("running_std", torch.ones((2*c_dim, channels), requires_grad=False))
         
     def forward(self, im, c_trg, c_org):
         std, mean = torch.std_mean(im, dim=(2,3))
@@ -49,9 +49,6 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
             trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
             trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
             
-        trg_std = trg_std.detach()
-        trg_mean = trg_mean.detach()
-        
         def broadcast(x):
             return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
 
