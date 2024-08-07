@@ -62,7 +62,7 @@ class Generator(nn.Module):
         
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
-        self.intiial = nn.Sequential()
+        self.initial = nn.Sequential()
         self.initial.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.initial.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))        
         self.initial.append(nn.ReLU())
