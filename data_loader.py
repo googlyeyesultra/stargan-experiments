@@ -96,7 +96,8 @@ def get_loader(image_dir, attr_path, selected_attrs, crop_size=178, image_size=1
     for i in range(len(dataset)):
         _, labels = dataset[i]
         weights[i] = (labels - label_frac).sum() ** 2
-        
+    
+    # Note that we shouldn't be doing weighted sampler in test mode probably TODO
     sampler = data.WeightedRandomSampler(weights, len(dataset), generator=torch.Generator().manual_seed(23))
     data_loader = data.DataLoader(dataset=dataset,
                                   batch_size=batch_size,
