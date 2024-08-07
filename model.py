@@ -53,12 +53,9 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
             for n in range(im.size(0)):
                 org_std[n] = self.running_std[c_org[n]].mean(dim=0)
                 org_mean[n] = self.running_mean[c_org[n]].mean(dim=0)
-            
-            for n in range(im.size(0)):
                 trg_std[n] = self.running_std[c_trg[n]].mean(dim=0)
                 trg_mean[n] = self.running_mean[c_trg[n]].mean(dim=0)
-            
-            
+
             def broadcast(x):
                 return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
     
