@@ -59,7 +59,8 @@ class ConditionalInstanceNorm2d(nn.Module):  # TODO train/test support
             def broadcast(x):
                 return x.unsqueeze(2).unsqueeze(3).expand(-1, -1, im.size(2), im.size(3))
     
-        return ((im-broadcast(org_mean)) / broadcast(org_std)) * broadcast(trg_std) + broadcast(trg_mean)
+        new_im = ((im-broadcast(org_mean)) / broadcast(org_std)) * broadcast(trg_std) + broadcast(trg_mean)
+        return torch.cat([im, new_im], dim=1)
 
 
 
@@ -84,6 +85,7 @@ class Generator(nn.Module):
             curr_dim = curr_dim * 2
 
         self.cond_norm = ConditionalInstanceNorm2d(curr_dim, c_dim)
+        curr_dim *= 2
         curr_dim += c_dim
 
         self.layers = nn.Sequential()
