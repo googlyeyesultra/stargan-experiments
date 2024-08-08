@@ -244,14 +244,14 @@ class Solver(object):
             d_loss_real = -min(0, out_src.mean()-1)
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
+            # R1 GP
+            d_loss_reg = self.r1_gp(out_src, x_real)
+
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src, out_cls = self.D(x_fake.detach())
             d_loss_fake = -min(0, -1 - out_src.mean())
             
-            # R1 GP
-            d_loss_reg = self.r1_gp(out_src, x_real)
-
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls + self.lambda_gp * d_loss_reg
             self.reset_grad()
