@@ -167,7 +167,9 @@ class Solver(object):
 
     def r1_gp(self, d_out, real):
         # Zero centered gradient penalty for real images.
-        # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.py
+        # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
+        
+        real.requires_grad_()
         grad = torch.autograd.grad(
             outputs=d_out.sum(), inputs=real,
             create_graph=True, retain_graph=True, only_inputs=True)[0]
