@@ -19,41 +19,56 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return x + self.main(x)
 
+class Poly(nn.Module)
 
 class Generator(nn.Module):
+    def _block(self, in_dim):
+        layers = nn.Sequential()
+        layers.append(nn.Conv2d(in_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        layers.append(nn.ReLU(inplace=True))
+
+        # Down-sampling layers.
+        curr_dim = conv_dim
+        for i in range(2):
+            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim * 2
+
+        # Bottleneck layers.
+        for i in range(repeat_num):
+            layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+
+        # Up-sampling layers.
+        for i in range(2):
+            layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
+            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            layers.append(nn.ReLU(inplace=True))
+            curr_dim = curr_dim // 2
+
+        layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        
+        return layers
+    
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
         super(Generator, self).__init__()
         
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
+        
+        self.block1 = self._block(3+c_dim)
+        self.block2 = self._block(3)
 
-        self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        self.layers.append(nn.ReLU(inplace=True))
+    def poly(self, x, im):
+        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
+        coeffs = num / denom
 
-        # Down-sampling layers.
-        curr_dim = conv_dim
-        for i in range(2):
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim * 2
-
-        # Bottleneck layers.
-        for i in range(repeat_num):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
-
-        # Up-sampling layers.
-        for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim // 2
-
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
+        return (pows * coeffs).sum(1)
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -63,14 +78,11 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
-
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
-        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
-        coeffs = num / denom
-
-        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
-        return (pows * coeffs).sum(1)
+        x = self.block1(x)
+        pass1 = self.poly(x, im)
+        x = self.block2(pass1)
+        x = self.poly(x, pass1)
+        return x
 
 
 class Discriminator(nn.Module):
