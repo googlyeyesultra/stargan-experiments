@@ -19,10 +19,9 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         return x + self.main(x)
 
-class Poly(nn.Module)
 
 class Generator(nn.Module):
-    def _block(self, in_dim):
+    def _block(self, in_dim, conv_dim, repeat_num):
         layers = nn.Sequential()
         layers.append(nn.Conv2d(in_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
@@ -48,7 +47,7 @@ class Generator(nn.Module):
             layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        layers.append(nn.Conv2d(curr_dim, 3 * (self.poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
         
         return layers
     
@@ -59,8 +58,8 @@ class Generator(nn.Module):
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
         
-        self.block1 = self._block(3+c_dim)
-        self.block2 = self._block(3)
+        self.block1 = self._block(3+c_dim, conv_dim, repeat_num)
+        self.block2 = self._block(3, conv_dim, repeat_num)
 
     def poly(self, x, im):
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
