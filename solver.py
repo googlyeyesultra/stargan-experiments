@@ -169,7 +169,6 @@ class Solver(object):
         # Zero centered gradient penalty for real images.
         # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
         
-        real.requires_grad_()
         grad = torch.autograd.grad(
             outputs=d_out.sum(), inputs=real,
             create_graph=True, retain_graph=True, only_inputs=True)[0]
@@ -240,6 +239,7 @@ class Solver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
+            x_real.requires_grad_()
             out_src, out_cls = self.D(x_real)
             d_loss_real = -min(0, out_src.mean()-1)
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
