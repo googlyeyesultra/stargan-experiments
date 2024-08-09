@@ -97,7 +97,7 @@ class Discriminator(nn.Module):
         spectral_norm(conv_out)
         layers.append(conv_out)
         self.main = nn.Sequential(*layers)
-        self.combine = nn.Bilinear(self.final_dim, c_dim*2, 1, bias=False)
+        self.combine = nn.Bilinear(self.final_dim, c_dim*2+1, 1, bias=False)
         spectral_norm(self.combine)
         
     def forward(self, x, labels):
