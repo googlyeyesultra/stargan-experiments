@@ -102,5 +102,6 @@ class Discriminator(nn.Module):
         
     def forward(self, x, labels):
         out = self.main(x)
-        labels = torch.cat((labels, 1-labels), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
+        const = torch.ones((labels.size(0), 1), dtype=torch.float, device=labels.get_device())
+        labels = torch.cat((labels, 1-labels, const), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female, plus one constant.
         return self.combine(out.view(out.size(0), self.final_dim), labels)
