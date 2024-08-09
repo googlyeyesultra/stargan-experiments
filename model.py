@@ -81,7 +81,7 @@ class Generator(nn.Module):
         pass1 = self.poly(x, im)
         x = self.block2(pass1)
         x = self.poly(x, pass1)
-        return x
+        return x, pass1
 
 
 class Discriminator(nn.Module):
