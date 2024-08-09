@@ -70,7 +70,7 @@ class Generator(nn.Module):
         pos_pows = torch.stack([im.pow(i+1) for i in range(self.poly_degree)], dim=1)
         const = torch.ones_like(im).unsqueeze(1)
         neg_pows = -pos_pows
-        terms = torch.cat([pos_pows, const, neg_pows])
+        terms = torch.cat([pos_pows, const, neg_pows], dim=1)
         return (terms * coeffs).sum(1)
 
 
