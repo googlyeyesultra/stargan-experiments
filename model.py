@@ -29,7 +29,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         pos_channels = 2
-        self.positional = nn.Parameter(torch.randn((im_size, im_size, pos_channels)))
+        self.positional = nn.Parameter(torch.randn((1, pos_channels, im_size, im_size)))
 
         self.layers = nn.Sequential()
         self.layers.append(nn.Conv2d(3 + c_dim + pos_channels, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
