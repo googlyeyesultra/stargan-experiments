@@ -60,7 +60,8 @@ class Generator(nn.Module):
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
-        c = c + torch.randn_like(c) / 6
+        if self.training:
+            c = c + torch.randn_like(c) / 6
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)

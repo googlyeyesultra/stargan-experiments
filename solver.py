@@ -225,7 +225,9 @@ class Solver(object):
             # =================================================================================== #
             #                             2. Train the discriminator                              #
             # =================================================================================== #
-
+            self.D.train()
+            self.G.train()
+            
             # Compute loss with real images.
             out_src, out_cls = self.D(x_real)
             d_loss_real = -min(0, out_src.mean()-1)
@@ -278,6 +280,9 @@ class Solver(object):
             #                                 4. Miscellaneous                                    #
             # =================================================================================== #
 
+            self.D.eval()
+            self.G.eval()
+            
             # Print out training information.
             if (i+1) % self.log_step == 0:
                 et = time.time() - start_time
