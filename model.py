@@ -66,7 +66,7 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         pos = self.positional.expand(im.size(0), -1, -1, -1)
-        x = torch.cat([im, c, self.positional], dim=1)
+        x = torch.cat([im, c, pos], dim=1)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
