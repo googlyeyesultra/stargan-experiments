@@ -48,7 +48,7 @@ class Generator(nn.Module):
         # Up-sampling layers.
         for i in range(2):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=3, padding=1))
+            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=9, padding=1))
             self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
@@ -93,7 +93,7 @@ class Discriminator(nn.Module):
 
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.main = nn.Sequential(*layers)
-        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=9, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
         self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
         spectral_norm(self.conv1)
         spectral_norm(self.conv2)
