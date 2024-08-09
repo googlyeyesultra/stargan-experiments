@@ -227,9 +227,8 @@ class Solver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
-            out_src, out_cls = self.D(x_real)
+            out_src = self.D(x_real, c_org)
             d_loss_real = -min(0, out_src.mean()-1)
-            d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
@@ -237,7 +236,7 @@ class Solver(object):
             d_loss_fake = -min(0, -1 - out_src.mean())
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls
+            d_loss = d_loss_real + d_loss_fake
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -246,7 +245,6 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
-            loss['D/loss_cls'] = d_loss_cls.item()
             
             # =================================================================================== #
             #                               3. Train the generator                                #
@@ -255,16 +253,15 @@ class Solver(object):
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
-                out_src, out_cls = self.D(x_fake)
+                out_src = self.D(x_fake, c_trg)
                 g_loss_fake = -out_src.mean()
-                g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Identity loss (instead of cycle consistency).
                 x_reconst = self.G(x_real, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
@@ -272,7 +269,6 @@ class Solver(object):
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
-                loss['G/loss_cls'] = g_loss_cls.item()
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #

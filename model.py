@@ -92,14 +92,15 @@ class Discriminator(nn.Module):
             curr_dim = curr_dim * 2
 
         kernel_size = int(image_size / np.power(2, repeat_num))
+        self.final_dim = c_dim * 4 + 2  # Arbitrary, but should scale up with number of classes.
+        conv_out = nn.Conv2d(curr_dim, self.final_dim, kernel_size=kernel_size)
+        spectral_norm(conv_out)
+        layers.append(conv_out)
         self.main = nn.Sequential(*layers)
-        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
-        spectral_norm(self.conv1)
-        spectral_norm(self.conv2)
+        self.combine = nn.Bilinear(self.final_dim, c_dim*2, 1, bias=False)
+        spectral_norm(self.combine)
         
-    def forward(self, x):
-        h = self.main(x)
-        out_src = self.conv1(h)
-        out_cls = self.conv2(h)
-        return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
+    def forward(self, x, labels):
+        out = self.main(x)
+        labels = torch.cat((labels, 1-labels), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female.
+        return self.combine(out.view(out.size(0), self.final_dim), labels)
