@@ -22,11 +22,10 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3):
         super(Generator, self).__init__()
         
         self.poly_degree = poly_degree
-        self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
@@ -53,7 +52,7 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(curr_dim, 3 * (2*poly_degree + 1), kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -65,12 +64,14 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
-        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
-        coeffs = num / denom
+        coeffs = x.unflatten(dim=1, sizes=(2*self.poly_degree + 1, 3))
+        coeffs = F.softmax(coeffs, dim=1)
 
-        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
-        return (pows * coeffs).sum(1)
+        pos_pows = torch.stack([im.pow(i+1) for i in range(self.poly_degree)], dim=1)
+        const = torch.ones_like(im).unsqueeze(1)
+        neg_pows = -pos_pows
+        terms = torch.cat(pos_pows, const, neg_pows)
+        return (terms * coeffs).sum(1)
 
 
 class Discriminator(nn.Module):
