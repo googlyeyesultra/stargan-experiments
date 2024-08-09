@@ -22,14 +22,17 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, im_size=128, poly_degree=3, poly_eps=.01):
         super(Generator, self).__init__()
         
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
 
+        pos_channels = 2
+        self.positional = torch.randn((im_size, im_size, pos_channels))
+
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(nn.Conv2d(3 + c_dim + pos_channels, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.layers.append(nn.ReLU(inplace=True))
 
@@ -62,7 +65,7 @@ class Generator(nn.Module):
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
+        x = torch.cat([im, c, self.positional], dim=1)
         x = self.layers(x)
 
         num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
