@@ -232,12 +232,15 @@ class Solver(object):
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
-            x_fake = self.G(x_real, c_trg)
+            x_fake, x_fake_mid = self.G(x_real, c_trg)
             out_src, out_cls = self.D(x_fake.detach())
             d_loss_fake = -min(0, -1 - out_src.mean())
+            
+            out_src, out_cls = self.D(x_fake_mid.detach())
+            d_loss_fake_mid = -min(0, -1 - out_src.mean())
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls
+            d_loss = d_loss_real + d_loss_fake + d_loss_fake_mid * .5 + self.lambda_cls * d_loss_cls
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -246,6 +249,7 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
+            loss['D/loss_fake_mid'] = d_loss_fake_mid
             loss['D/loss_cls'] = d_loss_cls.item()
             
             # =================================================================================== #
@@ -254,17 +258,23 @@ class Solver(object):
             
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
-                x_fake = self.G(x_real, c_trg)
+                x_fake, x_fake_mid = self.G(x_real, c_trg)
                 out_src, out_cls = self.D(x_fake)
                 g_loss_fake = -out_src.mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
+                
+                out_src, out_cls = self.D(x_fake_mid)
+                g_loss_fake_mid = -out_src.mean()
+                g_loss_cls_mid = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Identity loss (instead of cycle consistency).
-                x_reconst = self.G(x_real, c_org)
+                x_reconst, x_reconst_mid = self.G(x_real, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
+                g_loss_rec_mid = torch.mean(torch.abs(x_real - x_reconst_mid))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls + \
+                         .5 * (g_loss_fake_mid + self.lambda_rec * g_loss_rec_mid + self.lambda_cls * g_loss_cls_mid)
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
@@ -273,6 +283,9 @@ class Solver(object):
                 loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
                 loss['G/loss_cls'] = g_loss_cls.item()
+                loss['G/loss_fake_mid'] = g_loss_fake
+                loss['G/loss_rec_mid'] = g_loss_rec_mid.item()
+                loss['G/loss_cls_mid'] = g_loss_cls_mid.item()
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #
@@ -296,7 +309,7 @@ class Solver(object):
                 with torch.no_grad():
                     x_fake_list = [x_fixed]
                     for c_fixed in c_fixed_list:
-                        x_fake_list.append(self.G(x_fixed, c_fixed))
+                        x_fake_list.append(self.G(x_fixed, c_fixed)[0])
                     x_concat = torch.cat(x_fake_list, dim=3)
                     sample_path = os.path.join(self.sample_dir, '{}-images.jpg'.format(i+1))
                     im = make_grid(self.denorm(x_concat.data.cpu()), nrow=1, padding=0)

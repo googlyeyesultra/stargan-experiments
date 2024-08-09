@@ -99,7 +99,7 @@ class Generator(nn.Module):
 
         pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
         step1 = (pows * coeffs).sum(1)
-        return self.layers2(step1)
+        return self.layers2(step1), step1
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
