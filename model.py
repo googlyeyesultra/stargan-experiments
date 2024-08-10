@@ -62,11 +62,15 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
-        vals = x.unflatten(dim=1, sizes=(2, 3))
-        intercept = vals[:,0,:,:,:].tanh()
-        slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
+        vals = x.unflatten(dim=1, sizes=(2, 3)).tanh()
+        a = vals[:,0,:,:,:]
+        b = vals[:,1,:,:,:]
         
-        return slope * im + intercept
+        # Equation of line passing through (-1, a) and (1, b):
+        # y = (b-a)/2 * x + (b-a)/2 + a
+        slope = (b-a)/2
+
+        return slope * im + slope + a
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
