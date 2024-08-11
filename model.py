@@ -6,20 +6,20 @@ from torch.nn.utils.parametrizations import spectral_norm
 
 from symmetric_layers_torch import SymmetricConv2d
 
-class HorzSymmConv(SymmetricConv2d):
-    def __init__(self, in_channels, out_channels, *args, **kwargs):
+
+def horz_symm_conv(in_channels, out_channels, *args, **kwargs):
         symm = {"h": out_channels}
-        super().__init__(in_channels, out_channels, *args, **kwargs, symmetry=symm)
+        return SymmetricConv2d(in_channels, out_channels, *args, **kwargs, symmetry=symm)
 
 class ResidualBlock(nn.Module):
     """Residual Block with instance normalization."""
     def __init__(self, dim_in, dim_out):
         super(ResidualBlock, self).__init__()
         self.main = nn.Sequential(
-            HorzSymmConv(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
+            horz_symm_conv(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True),
-            HorzSymmConv(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
+            horz_symm_conv(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True))
 
     def forward(self, x):
@@ -32,14 +32,14 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         
         self.layers = nn.Sequential()
-        self.layers.append(HorzSymmConv(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.layers.append(horz_symm_conv(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
         self.layers.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.layers.append(HorzSymmConv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.layers.append(horz_symm_conv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
             self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
@@ -51,12 +51,12 @@ class Generator(nn.Module):
         # Up-sampling layers.
         for i in range(2):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(HorzSymmConv(curr_dim, curr_dim//2, kernel_size=5, padding=2))
+            self.layers.append(horz_symm_conv(curr_dim, curr_dim//2, kernel_size=5, padding=2))
             self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(HorzSymmConv(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(horz_symm_conv(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -79,14 +79,14 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super(Discriminator, self).__init__()
         layers = []
-        conv = HorzSymmConv(3, conv_dim, kernel_size=4, stride=2, padding=1)
+        conv = horz_symm_conv(3, conv_dim, kernel_size=4, stride=2, padding=1)
         spectral_norm(conv)
         layers.append(conv)
         layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
-            conv = HorzSymmConv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
+            conv = horz_symm_conv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
             spectral_norm(conv)
             layers.append(conv)
             layers.append(nn.LeakyReLU(0.01))
