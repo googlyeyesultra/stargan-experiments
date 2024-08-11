@@ -56,7 +56,7 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(HorzSymmConv(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -94,8 +94,8 @@ class Discriminator(nn.Module):
 
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.main = nn.Sequential(*layers)
-        self.conv1 = HorzSymmConv(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.conv2 = HorzSymmConv(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
+        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
         spectral_norm(self.conv1)
         spectral_norm(self.conv2)
         
