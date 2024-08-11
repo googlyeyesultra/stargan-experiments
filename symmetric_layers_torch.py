@@ -103,4 +103,5 @@ class SymmetricConv2d(nn.Conv2d):
             torch.flip(self.weight[ix:ix + n,:,:,:], (2,3))])
             ix += n
 
-        return self._conv_forward(input, torch.cat(weight, dim=0))
+        # Had to make some changes here. Also don't think share_bias is implemented?
+        return self._conv_forward(input, torch.cat(weight, dim=0), self.bias)
