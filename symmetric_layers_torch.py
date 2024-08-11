@@ -103,4 +103,4 @@ class SymmetricConv2d(nn.Conv2d):
             torch.flip(self.weight[ix:ix + n,:,:,:], (2,3))])
             ix += n
 
-        return self.conv2d_forward(input, torch.cat(weight, dim=0))
+        return self._conv_forward(input, torch.cat(weight, dim=0))
