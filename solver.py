@@ -160,9 +160,6 @@ class Solver(object):
         return c_trg_list
 
     def classification_loss(self, logit, target, dataset='CelebA'):
-        # Label smoothing
-        target = target * .8 + .1
-        
         """Compute binary or softmax cross entropy loss."""
         if dataset == 'CelebA':
             return F.binary_cross_entropy_with_logits(logit, target, size_average=False) / logit.size(0)
