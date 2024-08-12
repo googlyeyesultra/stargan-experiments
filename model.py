@@ -113,6 +113,12 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
         self.layers = nn.Sequential()
+        
+        initial_conv = nn.Conv2d(3, conv_dim, kernel_size=3, stride=1, padding=1)
+        spectral_norm(initial_conv)
+        self.layers.append(initial_conv)
+        self.layers.append(nn.LeakyReLU(.01))
+        
         size = image_size
         while size > 1:
             self.layers.append(DiscrimBlock(conv_dim))
