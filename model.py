@@ -133,4 +133,4 @@ class Discriminator(nn.Module):
         
     def forward(self, x):
         x = self.layers(x)
-        return self.conv1(x), self.conv2(x)
+        return self.conv1(x).squeeze(1, 2, 3), self.conv2(x).squeeze(2, 3)
