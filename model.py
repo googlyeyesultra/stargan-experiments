@@ -86,7 +86,7 @@ class Discriminator(nn.Module):
         self.layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
-        for i in range(1, repeat_num // 2):
+        for i in range(0, repeat_num // 2):
             conv = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
             spectral_norm(conv)
             self.layers.append(conv)
@@ -114,6 +114,6 @@ class Discriminator(nn.Module):
         
     def forward(self, x):
         x = self.layers(x)
-        out_src = self.tails[-1](x).squeeze(2).mean(dim=(2, 3))
-        out_cls = torch.stack([self.tails[i](x).squeeze(2).mean(dim=(2, 3)) for i in range(self.c_dim)], dim=1)
+        out_src = self.tails[-1](x).squeeze((2, 3, 4))
+        out_cls = torch.stack([self.tails[i](x).squeeze((2, 3, 4)) for i in range(self.c_dim)], dim=1)
         return out_src, out_cls
