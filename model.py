@@ -80,6 +80,10 @@ class Discriminator(nn.Module):
         assert not repeat_num % 2
         self.c_dim = c_dim
         self.layers = nn.Sequential()
+        conv = nn.Conv2d(3, conv_dim, kernel_size=3, stride=1, padding=1)
+        spectral_norm(conv)
+        self.layers.append(conv)
+        self.layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
         for i in range(repeat_num // 2):
