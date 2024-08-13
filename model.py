@@ -114,6 +114,6 @@ class Discriminator(nn.Module):
         
     def forward(self, x):
         x = self.layers(x)
-        out_src = self.tails[-1](x)
-        out_cls = torch.stack([self.tails[i](x) for i in range(self.c_dim)], dim=1)
+        out_src = self.tails[-1](x).squeeze(2).mean(dim=(2, 3))
+        out_cls = torch.stack([self.tails[i](x).squeeze(2).mean(dim=(2, 3)) for i in range(self.c_dim)], dim=1)
         return out_src, out_cls
