@@ -96,16 +96,15 @@ class Discriminator(nn.Module):
         final_size = int(image_size / np.power(2, repeat_num))
         self.tails = nn.ModuleList()
         for t in range(c_dim + 1):
-            tail_dim = curr_dim
             tail = nn.Sequential()
             self.tails.append(tail)
             for i in range(repeat_num // 2):
-                conv = nn.Conv2d(tail_dim, tail_dim, kernel_size=4, stride=2, padding=1)
+                conv = nn.Conv2d(curr_dim, curr_dim, kernel_size=4, stride=2, padding=1)
                 spectral_norm(conv)
                 tail.append(conv)
                 tail.append(nn.LeakyReLU(0.01))
         
-            final_conv = nn.Conv2d(tail_dim, 1, kernel_size=final_size, stride=1, padding=0, bias=False)
+            final_conv = nn.Conv2d(curr_dim, 1, kernel_size=final_size, stride=1, padding=0, bias=False)
             spectral_norm(final_conv)
             tail.append(final_conv)
             
