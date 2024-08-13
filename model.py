@@ -81,13 +81,11 @@ class DiscrimBlock(nn.Module):
             conv = nn.Conv2d(conv_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=True)
             spectral_norm(conv)
             self.layers.append(conv)
-            if i != num_convs - 1:
-                self.layers.append(nn.LeakyReLU(.01, inplace=True))
+            self.layers.append(nn.LeakyReLU(.01, inplace=True))
         
-        self.final_activ = nn.LeakyReLU(.01)
         
     def forward(self, x):
-        return self.final_activ(self.layers(x) + x)
+        return self.layers(x) + x
 
 
 class DownsampleBlock(nn.Module):
@@ -101,14 +99,13 @@ class DownsampleBlock(nn.Module):
             if i != num_convs - 1:
                 self.layers.append(nn.LeakyReLU(.01, inplace=True))
         
-        self.final = nn.Sequential()
         conv = nn.Conv2d(conv_dim, conv_dim, kernel_size=4, stride=2, padding=1, bias=True)
         spectral_norm(conv)
-        self.final.append(conv)
-        self.final.append(nn.LeakyReLU(.01))
+        self.layers.append(conv)
+        self.layers.append(nn.LeakyReLU(.01, inplace=True))
         
     def forward(self, x):
-        return self.final(self.layers(x) + x)
+        return self.layers(x)
 
 
 class Discriminator(nn.Module):
