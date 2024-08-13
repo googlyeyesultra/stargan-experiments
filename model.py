@@ -99,7 +99,8 @@ class Discriminator(nn.Module):
         self.main = nn.Sequential(*layers)
         self.proj = nn.Bilinear(c_dim*2+1, self.final_dim, 1, bias=False)
         self.fc = nn.Linear(self.final_dim, 1)
-        spectral_norm(self.combine)
+        spectral_norm(self.proj)
+        spectral_norm(self.fc)
         
     def forward(self, x, labels):
         # https://arxiv.org/abs/1802.05637
