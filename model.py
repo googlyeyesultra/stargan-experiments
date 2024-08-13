@@ -107,7 +107,7 @@ class Discriminator(nn.Module):
                 tail.append(nn.LeakyReLU(0.01))
                 tail_dim = tail_dim * 2
         
-            final_conv = nn.Conv2d(tail_dim, 1, kernel_size=final_size, stride=1, padding=1, bias=False)
+            final_conv = nn.Conv2d(tail_dim, 1, kernel_size=final_size, stride=1, padding=0, bias=False)
             spectral_norm(final_conv)
             tail.append(final_conv)
             
