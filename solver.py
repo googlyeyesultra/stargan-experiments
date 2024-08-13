@@ -159,11 +159,8 @@ class Solver(object):
         return c_trg_list
 
     def classification_loss(self, logit, target, dataset='CelebA'):
-        """Compute binary or softmax cross entropy loss."""
-        if dataset == 'CelebA':
-            return F.binary_cross_entropy_with_logits(logit, target, size_average=False) / logit.size(0)
-        elif dataset == 'RaFD':
-            return F.cross_entropy(logit, target)
+        scores = torch.where(target == 1, logit, -logit)
+        return max(0, 1 - scores.mean())
 
     def train(self):
         """Train StarGAN within a single dataset."""
@@ -246,7 +243,7 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
-            loss['D/loss_cls'] = d_loss_cls.item()
+            loss['D/loss_cls'] = d_loss_cls
             
             # =================================================================================== #
             #                               3. Train the generator                                #
@@ -272,7 +269,7 @@ class Solver(object):
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
-                loss['G/loss_cls'] = g_loss_cls.item()
+                loss['G/loss_cls'] = g_loss_cls
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #
