@@ -29,6 +29,9 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
         self.c_dim = c_dim
 
+        # Reducing memory footprint a little bit - this is a hack (conv_dim should be changed directly).
+        conv_dim = conv_dim * 2 // 3
+
         self.downsample = nn.Sequential()
         self.downsample.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
         self.downsample.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
