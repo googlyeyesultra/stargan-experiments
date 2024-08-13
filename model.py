@@ -95,11 +95,11 @@ class Discriminator(nn.Module):
             
             
         final_size = int(image_size / np.power(2, repeat_num))
-        tails = nn.ModuleList()
+        self.tails = nn.ModuleList()
         for t in range(c_dim + 1):
             tail_dim = curr_dim
             tail = nn.Sequential()
-            tails.append(tail)
+            self.tails.append(tail)
             for i in range(repeat_num // 2):
                 conv = nn.Conv2d(tail_dim, tail_dim*2, kernel_size=4, stride=2, padding=1)
                 spectral_norm(conv)
