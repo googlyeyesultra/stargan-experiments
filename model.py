@@ -50,8 +50,7 @@ class Generator(nn.Module):
             class_net = nn.Sequential()
             self.class_nets.append(class_net)
             class_net.append(nn.Conv2d(curr_dim + 1, curr_dim, kernel_size=3, stride=1, padding=1, bias=False))
-            class_net.append(nn.InstanceNorm2d(curr_dim, affine=True, track_running_stats=True))
-            class_net.append(nn.ReLU(inplace=True))
+            class_net.append(nn.LeakyReLU(.01))
             
             # Bottleneck layers.
             for i in range(repeat_num):
