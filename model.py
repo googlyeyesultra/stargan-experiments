@@ -86,7 +86,7 @@ class Discriminator(nn.Module):
         self.layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
-        for i in range(repeat_num // 2):
+        for i in range(repeat_num - repeat_num // 3):
             conv = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
             spectral_norm(conv)
             self.layers.append(conv)
@@ -100,7 +100,7 @@ class Discriminator(nn.Module):
             tail_dim = curr_dim
             tail = nn.Sequential()
             self.tails.append(tail)
-            for i in range(repeat_num // 2):
+            for i in range(repeat_num // 3):
                 conv = nn.Conv2d(tail_dim, tail_dim*2, kernel_size=4, stride=2, padding=1)
                 spectral_norm(conv)
                 tail.append(conv)
