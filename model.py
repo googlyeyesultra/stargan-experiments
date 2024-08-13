@@ -25,42 +25,63 @@ class Generator(nn.Module):
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
         
-        self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        self.layers.append(nn.ReLU(inplace=True))
+        self.c_dim = c_dim
+
+        # Reducing memory footprint a little bit - this is a hack (conv_dim should be changed directly).
+        conv_dim = conv_dim * 2 // 3
+
+        self.downsample = nn.Sequential()
+        self.downsample.append(nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
+        self.downsample.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        self.downsample.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
+            self.downsample.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
+            self.downsample.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
+            self.downsample.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
-        # Bottleneck layers.
-        for i in range(repeat_num):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+        self.class_nets = nn.ModuleList()
+        for c in range(c_dim):
+            class_net = nn.Sequential()
+            self.class_nets.append(class_net)
+            class_net.append(nn.Conv2d(curr_dim + 1, curr_dim, kernel_size=3, stride=1, padding=1, bias=False))
+            class_net.append(nn.InstanceNorm2d(curr_dim, affine=True, track_running_stats=True))
+            class_net.append(nn.ReLU(inplace=True))
+            
+            # Bottleneck layers.
+            for i in range(repeat_num):
+                class_net.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
+        self.upsample = nn.Sequential()
         # Up-sampling layers.
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
+            self.upsample.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            self.upsample.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
+            self.upsample.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
+            self.upsample.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
+        self.upsample.append(nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
+        downed = self.downsample(im)
+        result_sum = torch.zeros_like(downed)
+        for i in range(self.c_dim):
+            c_selected = c[:,i]
+            c_selected = c_selected.view(c_selected.size(0), 1, 1, 1)
+            c_selected = c_selected.expand(c_selected.size(0), 1, downed.size(2), downed.size(3))
+            stacked = torch.cat([downed, c_selected], dim=1)
+            result = self.class_nets[i](stacked)
+            result_sum += result
+        
+        x = self.upsample(result_sum)
 
         vals = x.unflatten(dim=1, sizes=(2, 3))
         intercept = vals[:,0,:,:,:].tanh()
