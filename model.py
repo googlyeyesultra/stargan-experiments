@@ -97,11 +97,16 @@ class Discriminator(nn.Module):
         spectral_norm(conv_out)
         layers.append(conv_out)
         self.main = nn.Sequential(*layers)
-        self.combine = nn.Bilinear(self.final_dim, c_dim*2+1, 1, bias=False)
+        self.proj = nn.Bilinear(c_dim*2+1, self.final_dim, 1, bias=False)
+        self.fc = nn.Linear(self.final_dim, 1)
         spectral_norm(self.combine)
         
     def forward(self, x, labels):
+        # https://arxiv.org/abs/1802.05637
         out = self.main(x)
+        out = out.view(out.size(0), self.final_dim)
         const = torch.ones((labels.size(0), 1), dtype=torch.float, device=labels.get_device())
         labels = torch.cat((labels, 1-labels, const), dim=1)  # Converts e.g. 1 for male, 0 for female into 1/0 is male 1/0 is female, plus one constant.
-        return self.combine(out.view(out.size(0), self.final_dim), labels)
+        
+        p = self.proj(labels, out)
+        return p + self.fc(out)
