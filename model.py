@@ -52,7 +52,7 @@ class Generator(nn.Module):
             
             # Bottleneck layers.
             for i in range(repeat_num):
-                self.class_net.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+                class_net.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         self.upsample = nn.Sequential()
         # Up-sampling layers.
