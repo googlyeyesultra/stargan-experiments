@@ -228,7 +228,7 @@ class Solver(object):
 
             # Compute loss with real images.
             outs = self.D(x_real)
-            labels = torch.cat([label_org, label_org.logical_not()], dim=1).to(torch.bool)
+            labels = torch.cat([label_org, 1 - label_org], dim=1)
             d_loss_real = self.classification_loss(outs, labels)
 
             # Compute loss with fake images.
