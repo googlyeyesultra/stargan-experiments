@@ -160,7 +160,8 @@ class Solver(object):
 
     def classification_loss(self, logit, target, dataset='CelebA'):
         score = torch.where(target >= .5, logit, -logit).mean()
-        return max(torch.zeros_like(score), 1 - score)
+        return -score
+        #return max(torch.zeros_like(score), 1 - score)
 
     def train(self):
         """Train StarGAN within a single dataset."""
