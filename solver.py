@@ -232,12 +232,12 @@ class Solver(object):
             empty = torch.full_like(outs, float("nan"))
             outs_pos = torch.where(labels, outs, empty).nanmean()
             outs_neg = torch.where(labels, empty, outs).nanmean()
-            d_loss_real = -min(0, outs_pos-outs_neg-1)
+            d_loss_real = -torch.min(0, outs_pos-outs_neg-1)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             outs = self.D(x_fake.detach())
-            d_loss_fake = -min(0, -1 - outs.mean())
+            d_loss_fake = -torch.min(0, -1 - outs.mean())
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake
