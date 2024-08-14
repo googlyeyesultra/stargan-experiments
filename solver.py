@@ -233,7 +233,7 @@ class Solver(object):
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
-            outs = self.D(x_fake.detach()).mean()
+            outs = self.D(x_fake.detach())
             d_loss_fake = self.classification_loss(outs, torch.zeros_like(outs))
 
             # Backward and optimize.
