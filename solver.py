@@ -256,7 +256,7 @@ class Solver(object):
                 x_fake = self.G(x_real, c_trg)
                 outs = self.D(x_fake)
                 empty = torch.full_like(outs, float("nan"))
-                outs_pos = torch.where(labels, outs, empty).nanmean()
+                outs_pos = torch.where(labels >= .5, outs, empty).nanmean()
                 g_loss_fake = -outs_pos.mean()
 
                 # Identity loss (instead of cycle consistency).
