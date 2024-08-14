@@ -229,15 +229,12 @@ class Solver(object):
             # Compute loss with real images.
             outs = self.D(x_real)
             labels = torch.cat([label_org, label_org.logical_not()], dim=1).to(torch.bool)
-            empty = torch.full_like(outs, float("nan"))
-            outs_pos = torch.where(labels, outs, empty).nanmean()
-            outs_neg = torch.where(labels, empty, outs).nanmean()
-            d_loss_real = -outs_pos+outs_neg
+            d_loss_real = self.classification_loss(outs, labels)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             outs = self.D(x_fake.detach()).mean()
-            d_loss_fake = -outs
+            d_loss_fake = self.classification_loss(outs, torch.zeros_like(outs))
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake
@@ -258,6 +255,7 @@ class Solver(object):
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
                 outs = self.D(x_fake)
+                empty = torch.full_like(outs, float("nan"))
                 outs_pos = torch.where(labels, outs, empty).nanmean()
                 g_loss_fake = -outs_pos.mean()
 
