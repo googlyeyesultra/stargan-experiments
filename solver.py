@@ -159,7 +159,7 @@ class Solver(object):
         return c_trg_list
 
     def classification_loss(self, logit, target, dataset='CelebA'):
-        scores = torch.where(target == 1, logit, -logit)
+        scores = torch.where(target >= .5, logit, -logit)
         return max(0, 1 - scores.mean())
 
     def train(self):
