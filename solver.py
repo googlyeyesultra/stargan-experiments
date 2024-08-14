@@ -228,7 +228,7 @@ class Solver(object):
 
             # Compute loss with real images.
             outs = self.D(x_real)
-            labels = torch.cat([label_org, label_org.logical_not()], dim=1)
+            labels = torch.cat([label_org, label_org.logical_not()], dim=1).to(torch.bool)
             empty = torch.full_like(outs, float("nan"))
             outs_pos = torch.where(labels, outs, empty).nanmean()
             outs_neg = torch.where(labels, empty, outs).nanmean()
