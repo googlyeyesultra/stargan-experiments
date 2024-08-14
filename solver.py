@@ -159,7 +159,7 @@ class Solver(object):
         return c_trg_list
 
     def classification_loss(self, logit, target, dataset='CelebA'):
-        return F.multilabel_margin_loss(logit, target.to(torch.dtype.long))
+        return F.multilabel_margin_loss(logit, target.to(torch.long))
 
     def train(self):
         """Train StarGAN within a single dataset."""
