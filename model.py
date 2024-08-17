@@ -53,7 +53,17 @@ class AdaIN(nn.Module):
     def __init__(self, style_dim, num_features):
         super().__init__()
         self.norm = nn.InstanceNorm2d(num_features, affine=False)
-        self.fc = nn.Linear(style_dim, num_features*2)
+        self.fc = nn.Sequential()
+        self.fc.append(nn.Linear(style_dim, num_features*2))
+        self.fc.append(nn.ReLU())
+        self.fc.append(nn.Linear(num_features*2, num_features*2))
+        self.fc.append(nn.ReLU())
+        self.fc.append(nn.Linear(num_features*2, num_features*2))
+        self.fc.append(nn.ReLU())
+        self.fc.append(nn.Linear(num_features*2, num_features*2))
+        self.fc.append(nn.ReLU())
+        self.fc.append(nn.Linear(num_features*2, num_features*2))
+
 
     def forward(self, x, s):
         h = self.fc(s)
