@@ -3,7 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm
+import kornia
 
+def rgb_to_lab(im):
+    x = (im + 1) / 2.0  # -1, 1 -> 0, 1
+    lab = kornia.color.rgb_to_lab(x)
+    lab[:,0,:,:] = lab[:,0,:,:] / 50.0 - 1  # 0, 100 -> -1, 1
+    lab[:,1:3,:,:] = lab[:,1:3,:,:] / 127.5 + 1/255  # -128, 127 -> -1, 1
+    return lab
+    
+def lab_to_rgb(im):  # Note that this modifies im in place.
+    im[:,0,:,:] = (im[:,0,:,:] + 1) * 50  # 0, 100 <- -1, 1
+    im[:,1:3,:,:] = (im[:,1:3,:,:] + 1/255) * 127.5  # -128, 127 <- -1, 1
+    rgb = kornia.color.lab_to_rgb(im)
+    return rgb * 2 - 1   # -1, 1 <- 0, 1
 
 class ResidualBlock(nn.Module):
     """Residual Block with instance normalization."""
@@ -59,6 +72,7 @@ class Generator(nn.Module):
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
+        im = rgb_to_lab(im)
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
@@ -66,7 +80,8 @@ class Generator(nn.Module):
         intercept = vals[:,0,:,:,:].tanh()
         slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
         
-        return slope * im + intercept
+        lab_out = slope * im + intercept
+        return lab_to_rgb(lab_out)
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
