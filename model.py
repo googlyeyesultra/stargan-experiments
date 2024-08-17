@@ -72,7 +72,6 @@ class Generator(nn.Module):
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
-        im = rgb_to_lab(im)
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
@@ -80,6 +79,7 @@ class Generator(nn.Module):
         intercept = vals[:,0,:,:,:].tanh()
         slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
         
+        im = rgb_to_lab(im)
         lab_out = slope * im + intercept
         return lab_to_rgb(lab_out)
 
