@@ -75,7 +75,6 @@ class Generator(nn.Module):
         
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
-        im = rgb_to_lab(im)
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
 
@@ -83,6 +82,7 @@ class Generator(nn.Module):
         denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
         coeffs = num / denom
 
+        im = rgb_to_lab(im)
         pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
         lab_out = (pows * coeffs).sum(1)
         return lab_to_rgb(lab_out)
