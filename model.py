@@ -5,19 +5,45 @@ import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm
 
 
-class ResidualBlock(nn.Module):
-    """Residual Block with instance normalization."""
-    def __init__(self, dim_in, dim_out):
-        super(ResidualBlock, self).__init__()
-        self.main = nn.Sequential(
-            nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True))
+class SEBlock(nn.Module):
+    def __init__(self, size, channels, updown="n"):
+        super().__init__()
+        self.size = size
+        self.ff = nn.Sequential()
+        self.ff.append(nn.Linear(channels, channels))
+        self.ff.append(nn.LeakyReLU(.1))
+        self.ff.append(nn.Linear(channels, channels))
+        self.ff.append(nn.Sigmoid())
+        
+        self.convnet = nn.Sequential()
+        conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
+        spectral_norm(conv1)
+        self.convnet.append(conv1)
+        self.convnet.append(nn.LeakyReLU(.1))
+        
+        if updown == "d":
+            self.trg_size = size // 2
+            conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1)
+            self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0)
+            spectral_norm(self.skip)
+        elif updown == "u":
+            self.trg_size = size * 2
+            self.convnet.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
+            self.skip = nn.ConvTranspose2d(channels, channels, kernel_size=1, stride=2, padding=0)
+            spectral_norm(self.skip)
+        else:
+            self.trg_size = size
+            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
+            self.skip = nn.Identity()
+        
+        spectral_norm(conv2)
+        self.convnet.append(conv2)
 
     def forward(self, x):
-        return x + self.main(x)
+        squeezed = F.avg_pool2d(x, self.size).squeeze((2, 3))
+        squeezed = self.ff(squeezed).unsqueeze(2).unsqueeze(3).expand(-1, -1, self.trg_size, self.trg_size)
+        return self.skip(x) + self.convnet(x) * squeezed
 
 
 class Generator(nn.Module):
@@ -28,32 +54,31 @@ class Generator(nn.Module):
         self.poly_degree = poly_degree
         self.poly_eps = poly_eps
 
+        conv_dim = 128  # Hacking here rather than changing arguments.
+        size = 128  # Hacking here rather than passing image size in.
+        
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        initial = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False)
+        spectral_norm(initial)
+        self.layers.append(initial)
         self.layers.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
-        curr_dim = conv_dim
         for i in range(2):
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            self.layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim * 2
-
-        # Bottleneck layers.
-        for i in range(repeat_num):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
-
-        # Up-sampling layers.
+            self.layers.append(SEBlock(size, conv_dim, "n"))
+            self.layers.append(SEBlock(size, conv_dim, "d"))
+            size //= 2
+            
+            
+        for i in range(6):
+            self.layers.append(SEBlock(size, conv_dim, "n"))
+            
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            self.layers.append(nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2))
-            self.layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            self.layers.append(nn.ReLU(inplace=True))
-            curr_dim = curr_dim // 2
+            self.layers.append(SEBlock(size, conv_dim, "u"))
+            size *= 2
+            self.layers.append(SEBlock(size, conv_dim, "n"))
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(conv_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
