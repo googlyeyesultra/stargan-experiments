@@ -52,7 +52,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
 
-        conv_dim = 128  # Hacking here rather than changing arguments.
+        conv_dim = 100  # Hacking here rather than changing arguments.
         size = 128  # Hacking here rather than passing image size in.
         
         self.layers = nn.Sequential()
@@ -66,7 +66,6 @@ class Generator(nn.Module):
             self.layers.append(SEBlock(size, conv_dim, "n"))
             self.layers.append(SEBlock(size, conv_dim, "d"))
             size //= 2
-            
             
         for i in range(6):
             self.layers.append(SEBlock(size, conv_dim, "n"))
