@@ -60,8 +60,11 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
-        return im + x
+        x = self.layers(x).tanh_()
+        sign = x.sign()
+        a = x * (1-im)
+        b = x * (1+im)
+        return (a * (sign+1) + b * (-sign+1)) / 2 + im
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
