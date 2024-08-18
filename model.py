@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm
-
+import math
 
 class ResidualBlock(nn.Module):
     """Residual Block with instance normalization."""
