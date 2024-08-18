@@ -113,8 +113,8 @@ class Discriminator(nn.Module):
         self.layers.append(initial)
         size = image_size
         for i in range(repeat_num):
-            self.blocks.append(SEBlock(size, conv_dim))
-            self.blocks.append(SEBlock(size, conv_dim, True))
+            self.layers.append(SEBlock(size, conv_dim))
+            self.layers.append(SEBlock(size, conv_dim, True))
             size //=2
             
         kernel_size = int(image_size / np.power(2, repeat_num))
