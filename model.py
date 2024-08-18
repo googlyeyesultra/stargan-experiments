@@ -98,7 +98,7 @@ class SEBlock(nn.Module):
 
     
     def forward(self, x):
-        squeezed = F.avg_pool2d(x, self.size).squeeze((2, 3))
+        squeezed = F.avg_pool2d(x, self.size)
         squeezed = self.ff(squeezed)
         return x + self.convnet(x) * squeezed
 
