@@ -109,7 +109,7 @@ class Discriminator(nn.Module):
         
         self.layers = nn.Sequential()
         initial = nn.Conv2d(3, conv_dim, kernel_size=3, stride=1, padding=1)
-        spectral_norm(self.initial)
+        spectral_norm(initial)
         self.layers.append(initial)
         size = image_size
         for i in range(repeat_num):
