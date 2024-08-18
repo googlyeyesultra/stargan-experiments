@@ -89,18 +89,22 @@ class SEBlock(nn.Module):
         self.convnet.append(conv1)
         self.convnet.append(nn.LeakyReLU(.1))
         if downsample:
+            self.trg_size = size // 2
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1)
+            self.ds_skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0)
+            spectral_norm(self.ds_skip)
         else:
+            self.trg_size = size
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
+            self.ds_skip = nn.Identity()
         
         spectral_norm(conv2)
         self.convnet.append(conv2)
 
-    
     def forward(self, x):
         squeezed = F.avg_pool2d(x, self.size)
         squeezed = self.ff(squeezed)
-        return x + self.convnet(x) * squeezed
+        return self.ds_skip(x) + self.convnet(x) * squeezed.expand(-1, -1, self.trg_size, self.trg_size)
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
