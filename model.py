@@ -67,7 +67,7 @@ class Generator(nn.Module):
             self.layers.append(SEBlock(size, conv_dim, "d"))
             size //= 2
             
-        for i in range(6):
+        for i in range(4):
             self.layers.append(SEBlock(size, conv_dim, "n"))
             
         for i in range(2):
