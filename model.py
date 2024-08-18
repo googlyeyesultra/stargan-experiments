@@ -102,10 +102,9 @@ class SEBlock(nn.Module):
         self.convnet.append(conv2)
 
     def forward(self, x):
-        squeezed = F.avg_pool2d(x, self.size)
-        print(squeezed.size())
-        squeezed = self.ff(squeezed)
-        return self.ds_skip(x) + self.convnet(x) * squeezed.expand(-1, -1, self.trg_size, self.trg_size)
+        squeezed = F.avg_pool2d(x, self.size).squeeze((2, 3))
+        squeezed = self.ff(squeezed).unsqueeze(2).unsqueeze(3).expand(-1, -1, self.trg_size, self.trg_size)
+        return self.ds_skip(x) + self.convnet(x) * squeezed
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
