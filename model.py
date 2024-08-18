@@ -30,7 +30,7 @@ class SEBlock(nn.Module):
             self.trg_size = size * 2
             self.convnet.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-            self.skip = nn.ConvTranspose2d(channels, channels, kernel_size=1, stride=2, padding=1)
+            self.skip = nn.ConvTranspose2d(channels, channels, kernel_size=2, stride=2, padding=0)
             spectral_norm(self.skip)
         else:
             self.trg_size = size
