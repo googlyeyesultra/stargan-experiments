@@ -241,18 +241,18 @@ class Solver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
-            out_src = self.D(x_real)
+            out_src = self.D(x_real, c_org)
             d_loss_real = -torch.mean(out_src)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
-            out_src = self.D(x_fake.detach())
+            out_src = self.D(x_fake.detach(), c_trg)
             d_loss_fake = torch.mean(out_src)
 
             # Compute loss for gradient penalty.
             alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
-            out_src = self.D(x_hat)
+            out_src = self.D(x_hat, c_org)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
@@ -274,7 +274,7 @@ class Solver(object):
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
-                out_src = self.D(x_fake)
+                out_src = self.D(x_fake, c_trg)
                 g_loss_fake = -torch.mean(out_src)
 
                 # Target-to-original domain.
