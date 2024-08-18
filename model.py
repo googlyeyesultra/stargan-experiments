@@ -131,5 +131,5 @@ class Discriminator(nn.Module):
         out = self.main(x)
         out = out.view(out.size(0), -1)  # (batch, num_domains)
         idx = torch.LongTensor(range(labels.size(0))).to(labels.device)
-        out = out[idx, labels]  # (batch)
+        out = out[idx, labels > .5]  # (batch). Labels are float 0/1 tensors, just basically casting to bool.
         return out.mean(dim=1)
