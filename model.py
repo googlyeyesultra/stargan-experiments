@@ -102,7 +102,7 @@ class SEBlock(nn.Module):
         self.convnet.append(conv2)
 
     def forward(self, x):
-        squeezed = F.avg_pool2d(x, self.size)
+        squeezed = F.adaptive_avg_pool2d(x, (1, 1))
         squeezed = self.ff(squeezed)
         return self.ds_skip(x) + self.convnet(x) * squeezed.expand(-1, -1, self.trg_size, self.trg_size)
 
