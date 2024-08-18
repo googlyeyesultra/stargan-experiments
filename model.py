@@ -125,7 +125,7 @@ class Discriminator(nn.Module):
         blocks += [nn.Conv2d(dim_out, c_dim+1, 1, 1, 0)]
         self.main = nn.Sequential(*blocks)
 
-    def forward(self, x, y):
+    def forward(self, x):
         out = self.main(x)
         out_src = out[:,0,0,0]
         out_cls = out[:,1:,0,0]
