@@ -145,7 +145,6 @@ class Discriminator(nn.Module):
         conv = nn.Conv2d(dim_out, c_dim+1, 1, 1, 0)
         spectral_norm(conv)
         blocks += [conv]
-        blocks += [conv]
         
         self.main = nn.Sequential(*blocks)
 
