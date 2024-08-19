@@ -208,7 +208,7 @@ class Solver(object):
                 x_real, label_org = next(data_iter)
 
             # Generate target domain labels randomly.
-            label_to_change = random.randint(label_org.size(1))
+            label_to_change = random.randint(0, label_org.size(1))
             label_trg = label_org.clone()
             label_trg[:,label_to_change] = 1 - label_trg[:,label_to_change]
 
