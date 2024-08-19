@@ -263,11 +263,6 @@ class Solver(object):
                 # Identity loss (instead of cycle consistency).
                 x_reconst = self.G(x_real, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
-                
-                # Geometric consistency
-                x_fake_flip = v2.functional.horizontal_flip(x_fake)
-                x_flip_fake = self.G(v2.functional.horizontal_flip(x_real), c_trg)
-                g_loss_geo = torch.mean(torch.abs(x_fake_flip - x_flip_fake))
 
                 # Backward and optimize.
                 g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls + 10 * g_loss_geo
