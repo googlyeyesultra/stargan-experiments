@@ -264,8 +264,11 @@ class Solver(object):
                 x_reconst = self.G(x_real, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
+                # Reconstruction loss using discriminator features.
+                g_loss_feat = torch.mean(torch.abs(self.D.intermediate(x_real) - self.D.intermediate(x_reconst)))
+
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_rec * g_loss_feat + self.lambda_cls * g_loss_cls
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
@@ -273,6 +276,7 @@ class Solver(object):
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
+                loss["G/loss_feat"] = g_loss_feat
                 loss['G/loss_cls'] = g_loss_cls.item()
 
             # =================================================================================== #

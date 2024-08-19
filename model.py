@@ -98,15 +98,21 @@ class Discriminator(nn.Module):
         super().__init__()
         conv_dim = 128  # Just hacking this in since we're using conv_dim differently.
         
-        self.layers = nn.Sequential()
+        self.first_layers = nn.Sequential()
         initial = nn.Conv2d(3, conv_dim, kernel_size=3, stride=1, padding=1)
         spectral_norm(initial)
-        self.layers.append(initial)
+        self.first_layers.append(initial)
         size = image_size
-        for i in range(repeat_num):
-            self.layers.append(SEBlock(size, conv_dim, "n"))
-            self.layers.append(SEBlock(size, conv_dim, "d"))
+        for i in range(repeat_num // 2):
+            self.first_layers.append(SEBlock(size, conv_dim, "n"))
+            self.first_layers.append(SEBlock(size, conv_dim, "d"))
             size //=2
+        
+        self.last_layers = nn.Sequential()
+        for i in range(repeat_num // 2):
+            self.last_layers.append(SEBlock(size, conv_dim, "n"))
+            self.last_layers.append(SEBlock(size, conv_dim, "d"))
+            size //=2 
             
         kernel_size = int(image_size / np.power(2, repeat_num))
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
@@ -114,8 +120,11 @@ class Discriminator(nn.Module):
         spectral_norm(self.conv1)
         spectral_norm(self.conv2)
         
+    def intermediate(self, x):
+        return self.first_layers(x)
+    
     def forward(self, x):
-        h = self.layers(x)
+        h = self.last_layers(self.first_layers(x))
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
         return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
