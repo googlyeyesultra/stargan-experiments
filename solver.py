@@ -8,6 +8,7 @@ import numpy as np
 import os
 import time
 import datetime
+import random
 
 
 class Solver(object):
@@ -207,8 +208,9 @@ class Solver(object):
                 x_real, label_org = next(data_iter)
 
             # Generate target domain labels randomly.
-            rand_idx = torch.randperm(label_org.size(0))
-            label_trg = label_org[rand_idx]
+            label_to_change = random.randint(label_org.size(1))
+            label_trg = label_org.clone()
+            label_trg[:,label_to_change] = 1 - label_trg[:,label_to_change]
 
             if self.dataset == 'CelebA':
                 c_org = label_org.clone()
