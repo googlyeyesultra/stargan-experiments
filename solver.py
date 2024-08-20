@@ -8,7 +8,7 @@ import os
 import time
 import datetime
 from torchvision.transforms import v2
-
+import math
 
 class Solver(object):
     """Solver for training and testing StarGAN."""
@@ -194,7 +194,7 @@ class Solver(object):
         print('Start training...')
         start_time = time.time()
         for i in range(start_iters, self.num_iters):
-
+            class_weight_scale = 2 * math.sin(i / self.n_critic) + 2
             # =================================================================================== #
             #                             1. Preprocess input data                                #
             # =================================================================================== #
@@ -238,7 +238,7 @@ class Solver(object):
             d_loss_fake = -min(0, -1 - out_src.mean())
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls
+            d_loss = d_loss_real + d_loss_fake + self.lambda_cls * d_loss_cls * class_weight_scale
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -265,7 +265,7 @@ class Solver(object):
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls * class_weight_scale
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
