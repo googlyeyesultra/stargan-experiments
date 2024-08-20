@@ -107,13 +107,15 @@ class Discriminator(nn.Module):
         for i in range(3):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
+        self.num_residuals_factor = 2 ** (down_layers + 3)
+
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=False)
         self.conv2 = nn.Conv2d(conv_dim, c_dim, kernel_size=1, stride=1, padding=0, bias=False)
         spectral_norm(self.conv1)
         spectral_norm(self.conv2)
         
     def forward(self, x):
-        h = self.layers(x)
+        h = self.layers(x) / self.num_residuals_factor
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
         return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
