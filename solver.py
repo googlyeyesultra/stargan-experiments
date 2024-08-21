@@ -189,6 +189,9 @@ class Solver(object):
         if self.resume_iters:
             start_iters = self.resume_iters
             self.restore_model(self.resume_iters)
+            
+        g_class_weight = self.lambda_cls
+        last_g_cls_loss = 0
 
         # Start training.
         print('Start training...')
@@ -265,15 +268,27 @@ class Solver(object):
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + self.lambda_cls * g_loss_cls
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec + g_class_weight * g_loss_cls
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
+                
+                glc = g_loss_cls.item()
+                if glc > last_g_cls_loss:
+                    # Loss is going up, so make it worth more to force it down.
+                    g_class_weight += .03
+                    g_class_weight = min(5, g_class_weight)
+                else:
+                    g_class_weight -= .03
+                    g_class_weight = max(.01, g_class_weight)
+                    
+                last_g_cls_loss = glc
 
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake
                 loss['G/loss_rec'] = g_loss_rec.item()
-                loss['G/loss_cls'] = g_loss_cls.item()
+                loss['G/loss_cls'] = glc
+                loss["G/class_weight"] = g_class_weight
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #
