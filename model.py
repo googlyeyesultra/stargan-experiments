@@ -24,7 +24,7 @@ class Block(nn.Module):
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
             if residual:
                 self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
-            if sn:
+            if sn and residual:
                 spectral_norm(self.skip)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
