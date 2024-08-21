@@ -87,7 +87,7 @@ class Generator(nn.Module):
             im_resized = resizer(im)
             x = b(x, im_resized, c)
             size *= 2
-        return x
+        return self.out(x)
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
