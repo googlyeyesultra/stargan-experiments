@@ -101,11 +101,11 @@ class Discriminator(nn.Module):
         down_layers = int(math.log2(image_size))
 
         for i in range(down_layers):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))
-            self.layers.append(Block(conv_dim, sn=True, updown="d"))
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))
+            self.layers.append(Block(conv_dim, sn=True, updown="d", residual=False))
 
         for i in range(3):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))     
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))     
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=False)
         self.conv2 = nn.Conv2d(conv_dim, c_dim, kernel_size=1, stride=1, padding=0, bias=False)
