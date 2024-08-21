@@ -81,7 +81,7 @@ class Generator(nn.Module):
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         size = self.init_size
-        x = torch.randn((im.size(0), self.conv_dim, self.init_size, self.init_size)).to(im.device())
+        x = torch.randn((im.size(0), self.conv_dim, self.init_size, self.init_size)).to(im.device)
         for b in self.up_blocks:
             im_resized = v2.Resize(im, size)
             x = b(x, im_resized)
