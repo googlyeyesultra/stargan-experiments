@@ -49,7 +49,7 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
         
         self.layers = nn.Sequential()
-        conv_dim = 256  # Just hacking it here.
+        conv_dim = 200  # Just hacking it here.
         
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
