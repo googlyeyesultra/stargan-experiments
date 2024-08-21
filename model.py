@@ -85,7 +85,7 @@ class Generator(nn.Module):
         for b in self.up_blocks:
             resizer = v2.Resize(size)
             im_resized = resizer(im)
-            x = b(x, im_resized)
+            x = b(x, im_resized, c)
             size *= 2
         return x
 
