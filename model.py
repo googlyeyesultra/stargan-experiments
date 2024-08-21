@@ -51,7 +51,7 @@ class Generator(nn.Module):
         self.layers = nn.Sequential()
         conv_dim = 128  # Just hacking it here.
         
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
+        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
 
         # Down-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, updown="d"))
