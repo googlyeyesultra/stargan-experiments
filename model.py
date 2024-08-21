@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm
 import math
+from torchvision.transforms import v2
 
 class Block(nn.Module):
     def __init__(self, channels, norm=False, sn=False, updown="n"):
@@ -40,44 +41,51 @@ class Block(nn.Module):
     def forward(self, x):
         return self.skip(x) + self.layers(x)
 
+class GenUpBlock(nn.Module):
+    def __init__(self, channels, c_dim):
+        super().__init__()
+        self.im_to_channels = nn.Conv2d(3 + c_dim, channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.layers = nn.Sequential()
+        self.layers.append(Block(2*channels, norm=True, updown="n"))
+        self.layers.append(nn.Conv2d(2*channels, channels, kernel_size=3, stride=1, padding=1, bias=False))
+        self.layers.append(nn.InstanceNorm2d(channels, affine=True))
+        self.layers.append(Block(channels, norm=True, updown="u"))
+        
+    def forward(self, x, im, c):
+        c = c.view(c.size(0), c.size(1), 1, 1)
+        c = c.repeat(1, 1, im.size(2), im.size(3))
+        return self.layers(torch.cat([x, im, c], dim=1))
+
 class Generator(nn.Module):
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
 
-        self.layers = nn.Sequential()
-        conv_dim = 128  # Just hacking it here.
+        self.conv_dim = 128  # Just hacking it here.
+        self.im_size = 128
+        self.init_size = 8
+        size = self.init_size
         
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
+        self.up_blocks = nn.ModuleList()
+        while size < self.im_size:
+            self.up_blocks.append(GenUpBlock(self.conv_dim, c_dim))
+            size *= 2
 
-        # Down-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
-
-        # Bottleneck layers.
-        for i in range(repeat_num):
-            self.layers.append(Block(conv_dim, norm=True, updown="n"))
-
-        # Up-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
-        
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
-        self.layers.append(nn.Tanh())
+        self.out = nn.Sequential()
+        self.out.append(nn.Conv2d(self.conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
+        self.out.append(nn.Tanh())
         
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
+        size = self.init_size
+        x = torch.randn((im.size(0), self.conv_dim, self.init_size, self.init_size)).to(im.device())
+        for b in self.up_blocks:
+            im_resized = v2.Resize(im, size)
+            x = b(x, im_resized)
+            size *= 2
         return x
 
 class Discriminator(nn.Module):
