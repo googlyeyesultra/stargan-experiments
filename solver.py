@@ -230,7 +230,7 @@ class Solver(object):
             # Compute loss with real images.
             out_src, out_cls = self.D(x_real)
             d_loss_real = -min(0, out_src.mean()-1)
-            d_loss_cls = (F.relu(-out_cls) * label_org + F.relu(out_cls) * (1-label_org)).mean()
+            d_loss_cls = (F.relu(1-out_cls) * label_org + F.relu(1+out_cls) * (1-label_org)).mean()
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
