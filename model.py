@@ -6,8 +6,10 @@ from torch.nn.utils.parametrizations import spectral_norm
 import math
 
 class Block(nn.Module):
-    def __init__(self, channels, norm=False, sn=False, updown="n"):
+    def __init__(self, channels, norm=False, sn=False, updown="n", residual=True):
         super().__init__()
+        
+        self.residual = residual
         
         self.layers = nn.Sequential()
         conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
@@ -20,16 +22,19 @@ class Block(nn.Module):
         
         if updown == "d":
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
-            self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
+            if residual:
+                self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
             if sn:
                 spectral_norm(self.skip)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Upsample(scale_factor=2, mode="bilinear")
+            if residual:
+                self.skip = nn.Upsample(scale_factor=2, mode="bilinear")
         else:
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Identity()
+            if residual:
+                self.skip = nn.Identity()
         
         if sn:
             spectral_norm(conv2)
@@ -38,7 +43,10 @@ class Block(nn.Module):
             self.layers.append(nn.InstanceNorm2d(channels, affine=True))
 
     def forward(self, x):
-        return self.skip(x) + self.layers(x)
+        if self.residual:
+            return self.skip(x) + self.layers(x)
+        else:
+            return self.layers(x)
 
 class Generator(nn.Module):
     """Generator network."""
