@@ -7,8 +7,10 @@ import math
 from torchvision.transforms import v2
 
 class Block(nn.Module):
-    def __init__(self, channels, norm=False, sn=False, updown="n"):
+    def __init__(self, channels, norm=False, sn=False, updown="n", residual=True):
         super().__init__()
+        
+        self.residual = residual
         
         self.layers = nn.Sequential()
         conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
@@ -21,16 +23,19 @@ class Block(nn.Module):
         
         if updown == "d":
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
-            self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
-            if sn:
+            if residual:
+                self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
+            if sn and residual:
                 spectral_norm(self.skip)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Upsample(scale_factor=2, mode="bilinear")
+            if residual:
+                self.skip = nn.Upsample(scale_factor=2, mode="bilinear")
         else:
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Identity()
+            if residual:
+                self.skip = nn.Identity()
         
         if sn:
             spectral_norm(conv2)
@@ -39,7 +44,10 @@ class Block(nn.Module):
             self.layers.append(nn.InstanceNorm2d(channels, affine=True))
 
     def forward(self, x):
-        return self.skip(x) + self.layers(x)
+        if self.residual:
+            return self.skip(x) + self.layers(x)
+        else:
+            return self.layers(x)
 
 class GenUpBlock(nn.Module):
     def __init__(self, channels, c_dim):
@@ -102,13 +110,11 @@ class Discriminator(nn.Module):
         down_layers = int(math.log2(image_size))
 
         for i in range(down_layers):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))
-            self.layers.append(Block(conv_dim, sn=True, updown="d"))
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))
+            self.layers.append(Block(conv_dim, sn=True, updown="d", residual=False))
 
         for i in range(3):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))     
-
-        self.num_residuals_factor = 2 ** (down_layers + 3)
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))     
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=False)
         self.conv2 = nn.Conv2d(conv_dim, c_dim, kernel_size=1, stride=1, padding=0, bias=False)
@@ -116,7 +122,7 @@ class Discriminator(nn.Module):
         spectral_norm(self.conv2)
         
     def forward(self, x):
-        h = self.layers(x) / self.num_residuals_factor
+        h = self.layers(x)
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
         return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
