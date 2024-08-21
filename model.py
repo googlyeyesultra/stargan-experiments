@@ -59,21 +59,21 @@ class Generator(nn.Module):
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
         # Down-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
+        self.layers.append(Block(conv_dim, norm=True, updown="d", residual=False))
+        self.layers.append(Block(conv_dim, norm=True, updown="n", residual=False))
+        self.layers.append(Block(conv_dim, norm=True, updown="d", residual=False))
 
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.layers.append(Block(conv_dim, norm=True, updown="n"))
+            self.layers.append(Block(conv_dim, norm=True, updown="n", residual=False))
 
         # Up-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
+        self.layers.append(Block(conv_dim, norm=True, updown="u", residual=False))
+        self.layers.append(Block(conv_dim, norm=True, updown="n", residual=False))
+        self.layers.append(Block(conv_dim, norm=True, updown="u", residual=False))
         
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, updown="n", residual=False))
+        self.layers.append(Block(conv_dim, norm=True, updown="n", residual=False))
         self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
         self.layers.append(nn.Tanh())
         
