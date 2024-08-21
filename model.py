@@ -83,7 +83,8 @@ class Generator(nn.Module):
         size = self.init_size
         x = torch.randn((im.size(0), self.conv_dim, self.init_size, self.init_size)).to(im.device)
         for b in self.up_blocks:
-            im_resized = v2.Resize(im, size)
+            resizer = v2.Resize(size)
+            im_resized = resizer(im)
             x = b(x, im_resized)
             size *= 2
         return x
