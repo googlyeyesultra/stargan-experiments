@@ -44,11 +44,11 @@ class Block(nn.Module):
 class GenUpBlock(nn.Module):
     def __init__(self, channels, c_dim):
         super().__init__()
-        self.im_to_channels = nn.Conv2d(3 + c_dim, channels, kernel_size=3, stride=1, padding=1, bias=False)
         self.layers = nn.Sequential()
-        self.layers.append(Block(2*channels, norm=True, updown="n"))
-        self.layers.append(nn.Conv2d(2*channels, channels, kernel_size=3, stride=1, padding=1, bias=False))
+        self.layers.append(Block(channels + 3 + c_dim, norm=True, updown="n"))
+        self.layers.append(nn.Conv2d(channels + 3 + c_dim, channels, kernel_size=3, stride=1, padding=1, bias=False))
         self.layers.append(nn.InstanceNorm2d(channels, affine=True))
+        self.layers.append(nn.ReLU(inplace=True))
         self.layers.append(Block(channels, norm=True, updown="u"))
         
     def forward(self, x, im, c):
