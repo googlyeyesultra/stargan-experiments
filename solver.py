@@ -229,12 +229,12 @@ class Solver(object):
 
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
-            d_loss_real = -min(0, out_src.mean()-1)
+            d_loss_real = -F.relu(out_src.mean()-1)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src = self.D(x_fake.detach(), c_trg)
-            d_loss_fake = -min(0, -1 - out_src.mean())
+            d_loss_fake = -F.relu(-1 - out_src.mean())
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake
