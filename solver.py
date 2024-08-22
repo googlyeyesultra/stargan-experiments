@@ -260,8 +260,8 @@ class Solver(object):
                 g_loss_fake = -out_src.mean()
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
-                # Identity loss (instead of cycle consistency).
-                x_reconst = self.G(x_real, c_org)
+                # Target-to-original domain.
+                x_reconst = self.G(x_fake, c_org)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
