@@ -108,7 +108,7 @@ class Discriminator(nn.Module):
         lin = nn.Linear(conv_dim + c_dim, conv_dim)
         spectral_norm(lin)
         self.labels_ff.append(lin)
-        self.labels_ff.append(nn.LeakyRelu(.2))
+        self.labels_ff.append(nn.LeakyReLU(.2))
         for i in range(10):
             lin = nn.Linear(conv_dim, conv_dim, bias=False)
             spectral_norm(lin)
