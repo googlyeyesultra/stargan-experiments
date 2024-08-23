@@ -64,10 +64,11 @@ class Generator(nn.Module):
         self.layers.append(Block(conv_dim, norm=True, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, updown="u"))
         
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
-        self.layers.append(nn.Tanh())
+        self.last = nn.Sequential()
+        self.last.append(Block(conv_dim+3, norm=True, updown="n"))
+        self.last.append(Block(conv_dim+3, norm=True, updown="n"))
+        self.last.append(nn.Conv2d(conv_dim+3, 3, kernel_size=7, stride=1, padding=3, bias=True))
+        self.last.append(nn.Tanh())
         
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -78,13 +79,13 @@ class Generator(nn.Module):
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
+        x = torch.cat([im, x], dim=1)
+        x = self.last(x)
         return x
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
-        
-
         
         conv_dim = 128  # Just hacking it here.
         self.layers = nn.Sequential()
