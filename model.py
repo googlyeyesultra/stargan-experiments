@@ -119,8 +119,6 @@ class Discriminator(nn.Module):
         self.labels_ff.append(nn.Linear(conv_dim, 1))
         
     def forward(self, x, c):
-        x = torch.cat([x, c], dim=1)
         x = self.layers(x).squeeze(dim=(2, 3)) / self.num_residuals_factor
-        print(x.size())
         x = torch.cat([x, c], dim=1)
         return self.labels_ff(x)
