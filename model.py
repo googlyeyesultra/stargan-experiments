@@ -86,7 +86,7 @@ class Discriminator(nn.Module):
         
         conv_dim = 128  # Just hacking it here.
         self.layers = nn.Sequential()
-        conv = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1)
+        conv = nn.Conv2d(3, conv_dim, kernel_size=3, stride=1, padding=1)
         spectral_norm(conv)
         self.layers.append(conv)
 
