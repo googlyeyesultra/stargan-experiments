@@ -114,7 +114,7 @@ class Discriminator(nn.Module):
             spectral_norm(lin)
             self.labels_ff.append(lin)
             self.labels.append(nn.BatchNorm1d(conv_dim, affine=True))
-            self.labels_ff.append(nn.LeakyRelu(.2))
+            self.labels_ff.append(nn.LeakyReLU(.2))
             
         self.labels_ff.append(nn.Linear(conv_dim, 1))
         
