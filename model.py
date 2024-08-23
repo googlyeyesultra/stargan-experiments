@@ -20,25 +20,25 @@ class Block(nn.Module):
         
         if updown == "d":
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
-            self.skip = nn.Conv2d(channels, channels, kernel_size=2, stride=2, padding=0, bias=not norm)
-            if sn:
-                spectral_norm(self.skip)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Upsample(scale_factor=2, mode="bilinear")
         else:
             conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
-            self.skip = nn.Identity()
         
         if sn:
             spectral_norm(conv2)
         self.layers.append(conv2)
         if norm:
             self.layers.append(nn.InstanceNorm2d(channels, affine=True))
+            
+        self.updown = updown
 
     def forward(self, x):
-        return self.skip(x) + self.layers(x)
+        if self.updown == "n":
+            return x + self.layers(x)
+        else:
+            return self.layers(x)
 
 class Generator(nn.Module):
     """Generator network."""
