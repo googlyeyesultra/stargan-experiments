@@ -67,12 +67,16 @@ class Generator(nn.Module):
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
         
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
-        self.layers.append(nn.Tanh())
+        self.final = nn.Sequential()
+        self.final.append(nn.Conv2d(3+conv_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
+        self.final.append(nn.InstanceNorm2d(conv_dim, affine=True))
+        self.final.append(nn.ReLU(inplace=True))
+        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.final.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
+        self.final.append(nn.Tanh())
         
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -83,7 +87,8 @@ class Generator(nn.Module):
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
-        return x
+        x = torch.cat([x, im], dim=1)
+        return self.final(x)
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
