@@ -6,8 +6,10 @@ from torch.nn.utils.parametrizations import spectral_norm
 import math
 
 class Block(nn.Module):
-    def __init__(self, channels, norm=False, sn=False, updown="n"):
+    def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n"):
         super().__init__()
+        
+        activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
         
         self.layers = nn.Sequential()
         conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
@@ -16,7 +18,7 @@ class Block(nn.Module):
         self.layers.append(conv1)
         if norm:
             self.layers.append(nn.InstanceNorm2d(channels, affine=True))
-        self.layers.append(nn.LeakyReLU(.3))
+        self.layers.append(activ)
         
         if updown == "d":
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
@@ -32,10 +34,11 @@ class Block(nn.Module):
         if norm:
             self.layers.append(nn.InstanceNorm2d(channels, affine=True))
             
-        self.updown = updown
+        self.layers.append(activ)
+        self.residual = updown == "n"
 
     def forward(self, x):
-        if self.updown == "n":
+        if self.residual:
             return x + self.layers(x)
         else:
             return self.layers(x)
@@ -51,21 +54,23 @@ class Generator(nn.Module):
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
         # Down-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="d"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
 
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.layers.append(Block(conv_dim, norm=True, updown="n"))
+            self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
 
         # Up-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="u"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
         
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
         self.layers.append(nn.Tanh())
         
@@ -84,8 +89,6 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
         
-
-        
         conv_dim = 128  # Just hacking it here.
         self.layers = nn.Sequential()
         conv = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1)
@@ -98,10 +101,10 @@ class Discriminator(nn.Module):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))
             self.layers.append(Block(conv_dim, sn=True, updown="d"))
 
-        for i in range(3):
+        for i in range(5):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 3)
+        self.num_residuals_factor = 2 ** (down_layers + 5)
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
