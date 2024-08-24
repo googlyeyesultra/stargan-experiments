@@ -104,7 +104,7 @@ class Discriminator(nn.Module):
         for i in range(5):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 5)
+        self.num_residuals_factor = 128
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
