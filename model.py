@@ -104,7 +104,6 @@ class Discriminator(nn.Module):
         for i in range(5):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 128
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
@@ -119,4 +118,4 @@ class Discriminator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
-        return self.layers(x).squeeze(dim=(1,2,3)) / self.num_residuals_factor
+        return self.layers(x).squeeze(dim=(1,2,3))
