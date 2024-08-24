@@ -83,9 +83,6 @@ class Generator(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
-        
-
-        
         conv_dim = 128  # Just hacking it here.
         self.layers = nn.Sequential()
         conv = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1)
@@ -105,11 +102,6 @@ class Discriminator(nn.Module):
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
-        
-        self.labels_ff = nn.Sequential()
-        self.labels_ff.append(nn.Linear(c_dim, 64))
-        self.labels_ff.append(nn.ReLU(inplace=True))
-        self.labels_ff.append(nn.Linear(64, c_dim))
         
     def forward(self, x, c):
         c = self.labels_ff(c)
