@@ -55,22 +55,16 @@ class Generator(nn.Module):
 
         # Down-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
 
         # Bottleneck layers.
-        for i in range(repeat_num):
+        for i in range(repeat_num//2):
             self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
 
         # Up-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
         
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
         self.layers.append(nn.Tanh())
         
@@ -98,13 +92,12 @@ class Discriminator(nn.Module):
         down_layers = int(math.log2(image_size))
 
         for i in range(down_layers):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))
             self.layers.append(Block(conv_dim, sn=True, updown="d"))
 
-        for i in range(5):
+        for i in range(2):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 5)
+        self.num_residuals_factor = 2 ** (2)
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
