@@ -45,11 +45,8 @@ class Block(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
-
-        self.poly_degree = poly_degree
-        self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
         conv_dim = 128  # Just hacking it here.
@@ -74,7 +71,7 @@ class Generator(nn.Module):
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(nn.Conv2d(conv_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        self.layers.append(nn.Conv2d(conv_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
         
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -85,12 +82,12 @@ class Generator(nn.Module):
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
-        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
-        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
-        coeffs = num / denom
         
-        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
-        return (pows * coeffs).sum(1)
+        vals = x.unflatten(dim=1, sizes=(2, 3))
+        intercept = vals[:,0,:,:,:].tanh()
+        slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
+        
+        return slope * im + intercept
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
