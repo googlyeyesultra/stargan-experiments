@@ -159,6 +159,18 @@ class Solver(object):
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
 
+    def r1_gp(self, d_out, real):
+        # Zero centered gradient penalty for real images.
+        # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
+        
+        grad = torch.autograd.grad(
+            outputs=d_out.sum(), inputs=real,
+            create_graph=True, retain_graph=True, only_inputs=True)[0]
+        grad_sqr = grad.pow(2)
+        
+        reg = .5 * grad_sqr.view(d_out.size(0), -1).sum(1).mean(0)
+        return reg
+
     def classification_loss(self, logit, target, dataset='CelebA'):
         """Compute binary or softmax cross entropy loss."""
         if dataset == 'CelebA':
@@ -230,6 +242,8 @@ class Solver(object):
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
             d_loss_real = F.relu(1-out_src.mean())
+            
+            d_loss_reg = self.r1_gp(out_src, x_real)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
@@ -237,7 +251,7 @@ class Solver(object):
             d_loss_fake = F.relu(1 + out_src.mean())
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake
+            d_loss = d_loss_real + d_loss_fake + d_loss_reg
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -246,6 +260,7 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
+            loss['D/loss_reg'] = d_loss_reg
             
             # =================================================================================== #
             #                               3. Train the generator                                #
