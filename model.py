@@ -111,13 +111,8 @@ class Discriminator(nn.Module):
 
         self.num_residuals_factor = 2 ** (down_layers + 5)
 
-        self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
+        self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=False)
         spectral_norm(self.conv1)
-        
-        self.labels_ff = nn.Sequential()
-        self.labels_ff.append(nn.Linear(c_dim, 64))
-        self.labels_ff.append(nn.ReLU(inplace=True))
-        self.labels_ff.append(nn.Linear(64, c_dim))
         
     def forward(self, x, c):
         c = self.labels_ff(c)
