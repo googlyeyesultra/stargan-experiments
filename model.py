@@ -60,7 +60,7 @@ class Generator(nn.Module):
 
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+            self.layers.append(Block(conv_dim, norm=True, updown="n"))
 
         # Up-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, updown="u"))
