@@ -49,7 +49,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.layers = nn.Sequential()
-        conv_dim = 256  # Just hacking it here.
+        conv_dim = 192  # Just hacking it here.
         
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
@@ -94,7 +94,7 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
         
-        conv_dim = 256  # Just hacking it here.
+        conv_dim = 192  # Just hacking it here.
         self.layers = nn.Sequential()
         conv = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1)
         spectral_norm(conv)
