@@ -54,27 +54,27 @@ class Generator(nn.Module):
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
         # Down-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="d"))
+        self.layers.append(Block(conv_dim, norm=True, updown="d"))
+        self.layers.append(Block(conv_dim, norm=True, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, updown="d"))
 
         # Bottleneck layers.
         for i in range(repeat_num):
             self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
 
         # Up-sampling layers.
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.layers.append(Block(conv_dim, norm=True, leaky=False, updown="u"))
+        self.layers.append(Block(conv_dim, norm=True, updown="u"))
+        self.layers.append(Block(conv_dim, norm=True, updown="n"))
+        self.layers.append(Block(conv_dim, norm=True, updown="u"))
         
         self.final = nn.Sequential()
         self.final.append(nn.Conv2d(3+conv_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
         self.final.append(nn.InstanceNorm2d(conv_dim, affine=True))
         self.final.append(nn.ReLU(inplace=True))
-        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
-        self.final.append(Block(conv_dim, norm=True, leaky=False, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, updown="n"))
+        self.final.append(Block(conv_dim, norm=True, updown="n"))
         self.final.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
         self.final.append(nn.Tanh())
         
