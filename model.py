@@ -75,8 +75,7 @@ class Generator(nn.Module):
         self.final.append(Block(conv_dim, norm=True, updown="n"))
         self.final.append(Block(conv_dim, norm=True, updown="n"))
         self.final.append(Block(conv_dim, norm=True, updown="n"))
-        self.final.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
-        self.final.append(nn.Tanh())
+        self.final.append(nn.Conv2d(conv_dim, 3 * 2, kernel_size=7, stride=1, padding=3, bias=True))
         
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -88,7 +87,12 @@ class Generator(nn.Module):
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
         x = torch.cat([x, im], dim=1)
-        return self.final(x)
+        x = self.final(x)
+    
+        vals = x.unflatten(dim=1, sizes=(2, 3))
+        intercept = vals[:,0,:,:,:].tanh()
+        slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
+        return slope * im + intercept
 
 class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
