@@ -12,7 +12,7 @@ class Block(nn.Module):
         activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
         
         self.layers = nn.Sequential()
-        conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+        conv1 = nn.Conv2d(channels, channels, kernel_size=5, stride=1, padding=1, bias=not norm)
         if sn:
             spectral_norm(conv1)
         self.layers.append(conv1)
@@ -24,9 +24,9 @@ class Block(nn.Module):
             conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+            conv2 = nn.Conv2d(channels, channels, kernel_size=5, stride=1, padding=2, bias=not norm)
         else:
-            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+            conv2 = nn.Conv2d(channels, channels, kernel_size=5, stride=1, padding=2, bias=not norm)
         
         if sn:
             spectral_norm(conv2)
