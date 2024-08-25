@@ -88,6 +88,7 @@ class Generator(nn.Module):
         x = self.layers(x)
         x = torch.cat([x, im], dim=1)
         x = self.final(x).tanh_()
+        sign = x.sign()
         a = x * (1-im)
         b = x * (1+im)
         return (a * (sign+1) + b * (-sign+1)) / 2 + im  # The signs and /2 are basically just a conditional branch.
