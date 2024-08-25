@@ -49,13 +49,12 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.layers = nn.Sequential()
-        conv_dim = 192  # Just hacking it here.
+        conv_dim = 256  # Just hacking it here.
         
         self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
 
         # Down-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, updown="d"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, updown="d"))
 
         # Bottleneck layers.
@@ -64,16 +63,12 @@ class Generator(nn.Module):
 
         # Up-sampling layers.
         self.layers.append(Block(conv_dim, norm=True, updown="u"))
-        self.layers.append(Block(conv_dim, norm=True, updown="n"))
         self.layers.append(Block(conv_dim, norm=True, updown="u"))
         
         self.final = nn.Sequential()
         self.final.append(nn.Conv2d(3+conv_dim, conv_dim, kernel_size=3, stride=1, padding=1, bias=False))
         self.final.append(nn.InstanceNorm2d(conv_dim, affine=True))
         self.final.append(nn.ReLU(inplace=True))
-        self.final.append(Block(conv_dim, norm=True, updown="n"))
-        self.final.append(Block(conv_dim, norm=True, updown="n"))
-        self.final.append(Block(conv_dim, norm=True, updown="n"))
         self.final.append(Block(conv_dim, norm=True, updown="n"))
         self.final.append(nn.Conv2d(conv_dim, 3, kernel_size=7, stride=1, padding=3, bias=True))
         self.final.append(nn.Tanh())
@@ -94,7 +89,7 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
         
-        conv_dim = 192  # Just hacking it here.
+        conv_dim = 256  # Just hacking it here.
         self.layers = nn.Sequential()
         conv = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=3, stride=1, padding=1)
         spectral_norm(conv)
@@ -103,13 +98,12 @@ class Discriminator(nn.Module):
         down_layers = int(math.log2(image_size))
 
         for i in range(down_layers):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))
             self.layers.append(Block(conv_dim, sn=True, updown="d"))
 
-        for i in range(5):
+        for i in range(2):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 5)
+        self.num_residuals_factor = 2 ** 2
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
