@@ -13,7 +13,7 @@ class DemodulatedConv(nn.Conv2d):
         return y * torch.rsqrt(self.weight.square().sum() + 1e-8)
 
 class Block(nn.Module):
-    def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n"):
+    def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n", residual=True):
         super().__init__()
         
         activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
@@ -40,7 +40,7 @@ class Block(nn.Module):
         self.layers.append(conv2)
             
         self.layers.append(activ)
-        self.residual = updown == "n"
+        self.residual = updown == "n" and residual
 
     def forward(self, x):
         if self.residual:
@@ -103,13 +103,12 @@ class Discriminator(nn.Module):
         down_layers = int(math.log2(image_size))
 
         for i in range(down_layers):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))
-            self.layers.append(Block(conv_dim, sn=True, updown="d"))
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))
+            self.layers.append(Block(conv_dim, sn=True, updown="d", residual=False))
 
         for i in range(5):
-            self.layers.append(Block(conv_dim, sn=True, updown="n"))     
+            self.layers.append(Block(conv_dim, sn=True, updown="n", residual=False))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 5)  # 2 ^ number of "n" layers.
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
@@ -124,4 +123,4 @@ class Discriminator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, x.size(2), x.size(3))
         x = torch.cat([x, c], dim=1)
-        return self.layers(x).squeeze(dim=(1,2,3)) / self.num_residuals_factor
+        return self.layers(x).squeeze(dim=(1,2,3))
