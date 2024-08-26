@@ -5,34 +5,39 @@ import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm
 import math
 
+
+# https://paperswithcode.com/method/weight-demodulation
+class DemodulatedConv(nn.Conv2d):
+    def forward(self, x):
+        y = super().forward(x)
+        return y * torch.rsqrt(self.weight.square().sum() + 1e-8)
+
 class Block(nn.Module):
     def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n"):
         super().__init__()
         
         activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
         
+        c = nn.Conv2d if not norm else DemodulatedConv
+        
         self.layers = nn.Sequential()
-        conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+        conv1 = c(channels, channels, kernel_size=3, stride=1, padding=1)
         if sn:
             spectral_norm(conv1)
         self.layers.append(conv1)
-        if norm:
-            self.layers.append(nn.InstanceNorm2d(channels, affine=True))
         self.layers.append(activ)
         
         if updown == "d":
-            conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1, bias=not norm)
+            conv2 = c(channels, channels, kernel_size=4, stride=2, padding=1)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+            conv2 = c(channels, channels, kernel_size=3, stride=1, padding=1)
         else:
-            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1, bias=not norm)
+            conv2 = c(channels, channels, kernel_size=3, stride=1, padding=1)
         
         if sn:
             spectral_norm(conv2)
         self.layers.append(conv2)
-        if norm:
-            self.layers.append(nn.InstanceNorm2d(channels, affine=True))
             
         self.layers.append(activ)
         self.residual = updown == "n"
@@ -104,7 +109,7 @@ class Discriminator(nn.Module):
         for i in range(5):
             self.layers.append(Block(conv_dim, sn=True, updown="n"))     
 
-        self.num_residuals_factor = 2 ** (down_layers + 5)
+        self.num_residuals_factor = 2 ** (down_layers + 5)  # 2 ^ number of "n" layers.
 
         self.conv1 = nn.Conv2d(conv_dim, 1, kernel_size=1, stride=1, padding=0, bias=True)
         spectral_norm(self.conv1)
