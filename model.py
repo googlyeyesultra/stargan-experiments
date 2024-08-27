@@ -53,15 +53,14 @@ class Generator(nn.Module):
         layers.append(nn.Tanh())
         self.main = nn.Sequential(*layers)
 
-    def forward(self, im, c):
+    def forward(self, x, c):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
-        
         c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
-        return self.layers(x)
+        c = c.repeat(1, 1, x.size(2), x.size(3))
+        x = torch.cat([x, c], dim=1)
+        return self.main(x)
 
 
 class Discriminator(nn.Module):
