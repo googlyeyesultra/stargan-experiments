@@ -56,7 +56,6 @@ class Generator(nn.Module):
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3)
         weight_norm(c)
         self.layers.append(c)
-        self.layers.append(nn.Tanh())
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -66,7 +65,11 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        return self.layers(x)
+        x = self.layers(x).tanh_()
+        sign = x.sign()
+        a = x * (1-im)
+        b = x * (1+im)
+        return (a * (sign+1) + b * (-sign+1)) / 2 + im  # The signs and /2 are basically just a conditional branch.
 
 
 class Discriminator(nn.Module):
