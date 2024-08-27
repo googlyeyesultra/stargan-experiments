@@ -2,41 +2,39 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from torch.nn.utils.parametrizations import spectral_norm
+from torch.nn.utils.parametrizations import spectral_norm, weight_norm
 import math
 
-
-# https://paperswithcode.com/method/weight-demodulation
-class DemodulatedConv(nn.Conv2d):
-    def forward(self, x):
-        y = super().forward(x)
-        return y * torch.rsqrt(self.weight.square().sum() + 1e-8)
 
 class Block(nn.Module):
     def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n", residual=True):
         super().__init__()
         
         activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
-        
-        c = nn.Conv2d if not norm else DemodulatedConv
-        
+                
         self.layers = nn.Sequential()
-        conv1 = c(channels, channels, kernel_size=3, stride=1, padding=1)
+        conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         if sn:
             spectral_norm(conv1)
+        else:
+            weight_norm(conv1)
+            
         self.layers.append(conv1)
         self.layers.append(activ)
         
         if updown == "d":
-            conv2 = c(channels, channels, kernel_size=4, stride=2, padding=1)
+            conv2 = nn.Conv2d(channels, channels, kernel_size=4, stride=2, padding=1)
         elif updown == "u":
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            conv2 = c(channels, channels, kernel_size=3, stride=1, padding=1)
+            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         else:
-            conv2 = c(channels, channels, kernel_size=3, stride=1, padding=1)
+            conv2 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
         
         if sn:
             spectral_norm(conv2)
+        else:
+            weight_norm(conv2)
+            
         self.layers.append(conv2)
             
         self.layers.append(activ)
