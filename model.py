@@ -97,14 +97,13 @@ class Discriminator(nn.Module):
             curr_dim = curr_dim * 2
 
         kernel_size = int(image_size / np.power(2, repeat_num))
+        conv = nn.Conv2d(curr_dim, c_dim*2, kernel_size=kernel_size, stride=1, padding=1, bias=True)
+        spectral_norm(conv)
+        layers.append(conv)
         self.main = nn.Sequential(*layers)
-        self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
-        spectral_norm(self.conv1)
-        spectral_norm(self.conv2)
+
         
-    def forward(self, x):
+    def forward(self, x, labels):
         h = self.main(x)
-        out_src = self.conv1(h)
-        out_cls = self.conv2(h)
-        return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
+        labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
+        return h[labels].mean(dim=1)
