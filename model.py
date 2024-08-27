@@ -2,20 +2,22 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from torch.nn.utils.parametrizations import spectral_norm
+from torch.nn.utils.parametrizations import spectral_norm, weight_norm
 
 
 class ResidualBlock(nn.Module):
     """Residual Block with instance normalization."""
     def __init__(self, dim_in, dim_out):
         super(ResidualBlock, self).__init__()
-        self.main = nn.Sequential(
-            nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True))
-
+        self.main = nn.Sequential()
+        c = nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1)
+        weight_norm(c)
+        self.main.append(c)
+        self.main.append(nn.ReLU(inplace=True))
+        c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1)
+        weight_norm(c2)
+        self.main.append(c2)
+        
     def forward(self, x):
         return x + self.main(x)
 
@@ -29,8 +31,9 @@ class Generator(nn.Module):
         self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
-        self.layers.append(nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        self.layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
+        c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3)
+        weight_norm(c)
+        self.layers.append(c)
         self.layers.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
@@ -53,7 +56,9 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        self.layers.append(nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3, bias=True))
+        c = nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3)
+        weight_norm(c)
+        self.layers.append(c)
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
