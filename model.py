@@ -10,7 +10,7 @@ class Block(nn.Module):
     def __init__(self, channels, norm=False, sn=False, leaky=True, updown="n", residual=True):
         super().__init__()
         
-        activ = nn.LeakyReLU(.3) if leaky else nn.ReLU(inplace=True)
+        activ = nn.LeakyReLU(.01) if leaky else nn.ReLU(inplace=True)
                 
         self.layers = nn.Sequential()
         conv1 = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
