@@ -95,8 +95,24 @@ class Discriminator(nn.Module):
         layers.append(conv)
         self.main = nn.Sequential(*layers)
 
+        self.ff = nn.Sequential()
+        layer = nn.Linear(c_dim * 2, 128)
+        spectral_norm(layer)
+        self.ff.append(layer)
+        self.ff.append(nn.LeakyReLU(.01))
+        
+        for i in range(5):
+            layer = nn.Linear(128, 128)
+            spectral_norm(layer)
+            self.ff.append(layer)
+            self.ff.append(nn.LeakyReLU(.01))
+        
+        layer = nn.Linear(128, 1)
+        spectral_norm(layer)
+        self.ff.append(layer)
         
     def forward(self, x, labels):
-        h = self.main(x)
+        h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
+        return self.ff(h*labels)  # h * labels masks out mismatched labels
         return h[labels].mean(dim=1)
