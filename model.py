@@ -95,7 +95,6 @@ class Discriminator(nn.Module):
         layers.append(conv)
         self.main = nn.Sequential(*layers)
 
-        
     def forward(self, x, labels):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
