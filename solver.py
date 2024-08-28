@@ -165,6 +165,18 @@ class Solver(object):
         elif dataset == 'RaFD':
             return F.cross_entropy(logit, target)
 
+    def r1_gp(self, d_out, real):
+        # Zero centered gradient penalty for real images.
+        # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
+        
+        grad = torch.autograd.grad(
+            outputs=d_out.sum(), inputs=real,
+            create_graph=True, retain_graph=True, only_inputs=True)[0]
+        grad_sqr = grad.pow(2)
+        
+        reg = .5 * grad_sqr.view(d_out.size(0), -1).sum(1).mean(0)
+        return reg
+
     def train(self):
         """Train StarGAN within a single dataset."""
         # Set data loader.
@@ -234,9 +246,11 @@ class Solver(object):
             x_fake = self.G(x_real, c_trg)
             out_src = self.D(x_fake.detach(), c_trg)
             d_loss_fake = F.relu(1 + out_src.mean())
+            
+            d_loss_reg = self.r1_gp(out_src, x_real)
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake
+            d_loss = d_loss_real + d_loss_fake + d_loss_reg
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -245,6 +259,7 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
+            loss['D/loss_reg'] = d_loss_reg
             
             # =================================================================================== #
             #                               3. Train the generator                                #
