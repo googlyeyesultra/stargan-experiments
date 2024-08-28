@@ -238,6 +238,7 @@ class Solver(object):
             #                             2. Train the discriminator                              #
             # =================================================================================== #
 
+            x_real.requires_grad_()
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
             d_loss_real = F.relu(1-out_src.mean())
