@@ -114,4 +114,6 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
+        print(h.size())
+        print(labels.size())
         return self.ff(h*labels)  # h * labels masks out mismatched labels
