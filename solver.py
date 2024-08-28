@@ -170,11 +170,11 @@ class Solver(object):
         # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
         
         grad = torch.autograd.grad(
-            outputs=d_out.sum(), inputs=real,
+            outputs=d_out, inputs=real,
             create_graph=True, retain_graph=True, only_inputs=True)[0]
         grad_sqr = grad.pow(2)
         
-        reg = .5 * grad_sqr.view(d_out.size(0), -1).sum(1).mean(0)
+        reg = .5 * grad_sqr.sum()
         return reg
 
     def train(self):
