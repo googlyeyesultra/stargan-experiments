@@ -56,7 +56,6 @@ class Generator(nn.Module):
             curr_dim = curr_dim // 2
 
         c = nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3)
-        weight_norm(c)
         self.layers.append(c)
 
     def forward(self, im, c):
