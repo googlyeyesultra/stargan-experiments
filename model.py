@@ -24,8 +24,11 @@ class ResidualBlock(nn.Module):
 
 class Generator(nn.Module):
     """Generator network."""
-    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
+    def __init__(self, conv_dim=64, c_dim=5, repeat_num=6, poly_degree=3, poly_eps=.01):
         super(Generator, self).__init__()
+
+        self.poly_degree = poly_degree
+        self.poly_eps = poly_eps
 
         self.layers = nn.Sequential()
         c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3)
@@ -55,10 +58,9 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3)
+        c = nn.Conv2d(curr_dim, 3 * (poly_degree+1), kernel_size=7, stride=1, padding=3)
         weight_norm(c)
         self.layers.append(c)
-        self.layers.append(nn.Tanh())
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -68,7 +70,14 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        return self.layers(x)
+        x = self.layers(x)
+
+        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
+        coeffs = num / denom
+
+        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
+        return (pows * coeffs).sum(1)
 
 
 class Discriminator(nn.Module):
