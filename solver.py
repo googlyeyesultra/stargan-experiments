@@ -252,7 +252,7 @@ class Solver(object):
 
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + d_loss_reg
+            d_loss = d_loss_real + d_loss_fake + 10 * d_loss_reg
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
