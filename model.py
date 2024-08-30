@@ -36,7 +36,7 @@ class Generator(nn.Module):
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False)
+            c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
             weight_norm(c)
             self.layers.append(c)
             self.layers.append(nn.ReLU(inplace=True))
