@@ -55,13 +55,15 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        for i in range(3):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+        self.final = nn.Sequential()
+        self.final.append(ResidualBlock(dim_in=curr_dim+3, dim_out=curr_dim))
+        for i in range(2):
+            self.final.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3)
         weight_norm(c)
-        self.layers.append(c)
-        self.layers.append(nn.Tanh())
+        self.final.append(c)
+        self.final.append(nn.Tanh())
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
@@ -71,7 +73,9 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        return self.layers(x)
+        x = self.layers(x)
+        x = torch.cat([im, x], dim=1)
+        return self.final(x)
 
 
 class Discriminator(nn.Module):
