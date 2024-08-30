@@ -56,8 +56,8 @@ class Generator(nn.Module):
             curr_dim = curr_dim // 2
 
         self.final = nn.Sequential()
-        self.final.append(ResidualBlock(dim_in=curr_dim+3, dim_out=curr_dim))
-        for i in range(2):
+        self.final.append(nn.Conv2d(curr_dim+3, curr_dim, 3, 1, 1))
+        for i in range(3):
             self.final.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3)
