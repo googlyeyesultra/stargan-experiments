@@ -228,12 +228,12 @@ class Solver(object):
 
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
-            d_loss_real = F.binary_cross_entry_with_logits(out_src, torch.ones_like(out_src))
+            d_loss_real = F.binary_cross_entropy_with_logits(out_src, torch.ones_like(out_src))
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src = self.D(x_fake.detach(), c_trg)
-            d_loss_fake = d_loss_real = F.binary_cross_entry_with_logits(out_src, torch.zeros_like(out_src))
+            d_loss_fake = d_loss_real = F.binary_cross_entropy_with_logits(out_src, torch.zeros_like(out_src))
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake
@@ -254,7 +254,7 @@ class Solver(object):
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
                 out_src = self.D(x_fake, c_trg)
-                g_loss_fake = F.binary_cross_entry_with_logits(out_src, torch.ones_like(out_src))
+                g_loss_fake = F.binary_cross_entropy_with_logits(out_src, torch.ones_like(out_src))
 
                 # Identity loss (instead of cycle consistency).
                 x_reconst = self.G(x_real, c_org)
