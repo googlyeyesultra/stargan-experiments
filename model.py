@@ -48,7 +48,7 @@ class Generator(nn.Module):
 
         # Up-sampling layers.
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            self.layers.append(nn.Upsample(scale_factor=2, mode="nearest"))
             c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
             weight_norm(c)
             self.layers.append(c)
