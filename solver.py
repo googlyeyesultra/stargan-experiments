@@ -257,7 +257,7 @@ class Solver(object):
             # =================================================================================== #
             
             if (i+1) % self.n_critic == 0:
-                for g, g_opt in zip(self.Gs, self.g_opts:
+                for g, g_opt in zip(self.Gs, self.g_opts):
                     # Original-to-target domain.
                     x_fake = g(x_real, c_trg)
                     out_src = self.D(x_fake, c_trg)
