@@ -10,11 +10,11 @@ class ResidualBlock(nn.Module):
     def __init__(self, dim_in, dim_out):
         super(ResidualBlock, self).__init__()
         self.main = nn.Sequential()
-        c = nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1)
+        c = nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
         weight_norm(c)
         self.main.append(c)
         self.main.append(nn.ReLU(inplace=True))
-        c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1)
+        c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
         weight_norm(c2)
         self.main.append(c2)
         
@@ -28,7 +28,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.layers = nn.Sequential()
-        c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3)
+        c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.layers.append(c)
         self.layers.append(nn.ReLU(inplace=True))
@@ -36,7 +36,7 @@ class Generator(nn.Module):
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False)
+            c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, padding_mode="reflect")
             weight_norm(c)
             self.layers.append(c)
             self.layers.append(nn.ReLU(inplace=True))
@@ -49,7 +49,7 @@ class Generator(nn.Module):
         # Up-sampling layers.
         for i in range(2):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2)
+            c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
             weight_norm(c)
             self.layers.append(c)
             self.layers.append(nn.ReLU(inplace=True))
@@ -58,7 +58,7 @@ class Generator(nn.Module):
         for i in range(3):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
-        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3)
+        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.layers.append(c)
         self.layers.append(nn.Tanh())
