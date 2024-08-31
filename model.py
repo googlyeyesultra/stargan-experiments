@@ -35,7 +35,7 @@ class Generator(nn.Module):
 
         # Down-sampling layers.
         curr_dim = conv_dim
-        for i in range(3):
+        for i in range(1):
             c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, padding_mode="reflect")
             weight_norm(c)
             self.layers.append(c)
@@ -47,7 +47,7 @@ class Generator(nn.Module):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         # Up-sampling layers.
-        for i in range(3):
+        for i in range(1):
             self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
             weight_norm(c)
