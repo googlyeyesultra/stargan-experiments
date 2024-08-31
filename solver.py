@@ -79,7 +79,6 @@ class Solver(object):
 
         self.g_opts = [torch.optim.Adam(g.parameters(), self.g_lr, [self.beta1, self.beta2]) for g in self.Gs]
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), self.d_lr, [self.beta1, self.beta2])
-        self.print_network(self.G, 'G')
         self.print_network(self.D, 'D')
         
         for g in self.Gs:
