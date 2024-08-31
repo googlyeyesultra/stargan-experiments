@@ -233,7 +233,6 @@ class Solver(object):
             d_loss_real = F.relu(1-out_src.mean())
 
             # Compute loss with fake images.
-            x_fake = torch.mean(g(x_real, c_trg) for g in self.Gs)
             d_loss_fake = 0
             for g in self.Gs:
                 x_fake = g(x_real, c_trg)
