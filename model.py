@@ -55,7 +55,7 @@ class Generator(nn.Module):
             self.layers.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
-        for i in range(3):
+        for i in range(6):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
