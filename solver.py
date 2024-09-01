@@ -303,7 +303,7 @@ class Solver(object):
                         for g in self.Gs:
                             fake = g(x_fixed, c_fixed)
                             recon = g(fake, fixed_c_org)
-                            score = self.D(fake, c_fixed) - (recon-x_fixed).abs().mean()
+                            score = self.D(fake, c_fixed) - 10 * (recon-x_fixed).abs().mean()
                             if score >= best_score:
                                 best = fake
                                 best_score = score
