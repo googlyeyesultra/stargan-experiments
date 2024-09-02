@@ -58,7 +58,7 @@ class Generator(nn.Module):
         for i in range(3):
             self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
-        c = nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
+        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.layers.append(c)
 
@@ -66,14 +66,11 @@ class Generator(nn.Module):
         c = c.view(c.size(0), c.size(1), 1, 1)
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
-        x = self.layers(x)
-        
-        vals = x.unflatten(dim=1, sizes=(2, 3))
-        intercept = vals[:,0,:,:,:].tanh()
-        slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
-        
-        return slope * im + intercept
-
+        x = self.layers(x).tanh_()
+        sign = x.sign()
+        a = x * (1-im)
+        b = x * (1+im)
+        return (a * (sign+1) + b * (-sign+1)) / 2 + im  # The signs and /2 are basically just a conditional branch.
 
 class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
