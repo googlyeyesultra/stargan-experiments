@@ -158,6 +158,20 @@ class Solver(object):
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
 
+    def gradient_penalty(self, y, x, labels):
+        """Compute gradient penalty: (L2_norm(dy/dx) - 1)**2."""
+        weight = torch.ones(y.size()).to(self.device)
+        dydx = torch.autograd.grad(outputs=y,
+                                   inputs=[x, labels],
+                                   grad_outputs=weight,
+                                   retain_graph=True,
+                                   create_graph=True,
+                                   only_inputs=True)[0]
+
+        dydx = dydx.view(dydx.size(0), -1)
+        dydx_l2norm = torch.sqrt(torch.sum(dydx**2, dim=1))
+        return torch.mean((dydx_l2norm-1)**2)
+
     def classification_loss(self, logit, target, dataset='CelebA'):
         """Compute binary or softmax cross entropy loss."""
         if dataset == 'CelebA':
@@ -228,15 +242,23 @@ class Solver(object):
 
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
-            d_loss_real = F.relu(1-out_src.mean())
+            d_loss_real = -out_src.mean()
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
             out_src = self.D(x_fake.detach(), c_trg)
-            d_loss_fake = F.relu(1 + out_src.mean())
+            d_loss_fake = out_src.mean()
+            
+            alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
+            x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
+            labels_alpha = alpha.squeeze(3).squeeze(2)
+            labels_hat = (labels_alpha * c_org + (1 - labels_alpha) * c_trg).requires_grad_(True)
+            
+            out_src = self.D(x_hat, labels_hat)
+            d_loss_gp = self.gradient_penalty(out_src, x_hat, labels_hat)
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake
+            d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
@@ -245,6 +267,7 @@ class Solver(object):
             loss = {}
             loss['D/loss_real'] = d_loss_real
             loss['D/loss_fake'] = d_loss_fake
+            loss['D/loss_gp'] = d_loss_gp.item()
             
             # =================================================================================== #
             #                               3. Train the generator                                #
