@@ -158,11 +158,11 @@ class Solver(object):
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
 
-    def gradient_penalty(self, y, x, labels):
+    def gradient_penalty(self, y, x):
         """Compute gradient penalty: (L2_norm(dy/dx) - 1)**2."""
         weight = torch.ones(y.size()).to(self.device)
         dydx = torch.autograd.grad(outputs=y,
-                                   inputs=[x, labels],
+                                   inputs=x,
                                    grad_outputs=weight,
                                    retain_graph=True,
                                    create_graph=True,
@@ -251,11 +251,9 @@ class Solver(object):
             
             alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
-            labels_alpha = alpha.squeeze(3).squeeze(2)
-            labels_hat = (labels_alpha * c_org + (1 - labels_alpha) * c_trg).requires_grad_(True)
             
-            out_src = self.D(x_hat, labels_hat)
-            d_loss_gp = self.gradient_penalty(out_src, x_hat, labels_hat)
+            out_src = self.D(x_hat, c_org)  # TODO using c_org is a little weird.
+            d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
