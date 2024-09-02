@@ -65,7 +65,7 @@ class Generator(nn.Module):
         self.register_buffer('hipass',
                      torch.tensor([[-1, -1, -1],
                                    [-1, 8., -1],
-                                   [-1, -1, -1]]) / 5)
+                                   [-1, -1, -1]]))
         
 
     def forward(self, im, c):
@@ -77,7 +77,7 @@ class Generator(nn.Module):
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
-        return F.tanh(F.conv2d(x, self.hipass, padding=1, groups=x.size(1)))
+        return F.tanh(F.conv2d(x, self.hipass.unsqueeze(0), padding=1, groups=x.size(1)))
 
 
 class Discriminator(nn.Module):
