@@ -67,7 +67,6 @@ class Generator(nn.Module):
                                    [-1, 8., -1],
                                    [-1, -1, -1]]) / 5)
         
-        self.layers.append(nn.Tanh())
 
     def forward(self, im, c):
         # Replicate spatially and concatenate domain information.
