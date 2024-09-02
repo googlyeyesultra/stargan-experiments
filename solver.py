@@ -252,8 +252,11 @@ class Solver(object):
             alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
             
-            out_src = self.D(x_hat, c_org)  # TODO using c_org is a little weird.
+            out_src = self.D(x_hat, c_org)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
+            
+            out_src = self.D(x_hat, c_trg)
+            d_loss_gp += self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
             d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
