@@ -77,7 +77,8 @@ class Generator(nn.Module):
         c = c.repeat(1, 1, im.size(2), im.size(3))
         x = torch.cat([im, c], dim=1)
         x = self.layers(x)
-        return F.tanh(F.conv2d(x, weight=self.hipass.unsqueeze(0), stride=1, padding=1, groups=x.size(1)))
+        hpf = self.hipass.unsqueeze(0).unsqueeze(1).repeat(x.size(1), 1, 1, 1)
+        return F.tanh(F.conv2d(x, weight=hpf, stride=1, padding=1, groups=x.size(1)))
 
 
 class Discriminator(nn.Module):
