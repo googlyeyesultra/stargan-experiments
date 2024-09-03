@@ -116,4 +116,4 @@ class Discriminator(nn.Module):
         for d in self.ds:
             result += d(x, labels)
         
-        return result
+        return result / len(self.ds)
