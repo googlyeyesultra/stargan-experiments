@@ -256,11 +256,13 @@ class Solver(object):
                 out_src = self.D(x_fake, c_trg)
                 g_loss_fake = -out_src.mean()
 
-                x_reconst = self.G(x_fake, c_org)
-                g_loss_rec = torch.mean(torch.abs(x_real - x_reconst)) / 2
-                
-                x_auto = self.G(x_real, c_org)
-                g_loss_rec += torch.mean(torch.abs(x_real - x_auto)) / 2
+                # Memory constraints mean can't do both at once, so we alternate which we choose.
+                if not (i+1) % (2 * self.n_critic):
+                    x_reconst = self.G(x_fake, c_org)
+                    g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
+                else:
+                    x_auto = self.G(x_real, c_org)
+                    g_loss_rec = torch.mean(torch.abs(x_real - x_auto))
 
                 # Backward and optimize.
                 g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
