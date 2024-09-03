@@ -115,7 +115,7 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         subset_num = random.randint(1, len(self.ds))
         result = 0
-        for d in random.sample(self.ds, subset_num):
+        for d in random.sample(list(self.ds), subset_num):
             result += d(x, labels)
         
         return result
