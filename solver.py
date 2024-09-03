@@ -254,7 +254,7 @@ class Solver(object):
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
                 out_src = self.D(x_fake, c_trg)
-                g_loss_fake = -(out_src.sigmoid().log())
+                g_loss_fake = F.binary_cross_entropy_with_logits(out_src, torch.zeros_like(out_src))
 
                 # Identity loss (instead of cycle consistency).
                 x_reconst = self.G(x_real, c_org)
