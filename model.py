@@ -48,7 +48,9 @@ class Generator(nn.Module):
 
         # Up-sampling layers.
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            ct = nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1)
+            weight_norm(ct)
+            self.layers.append(ct)
             c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
             weight_norm(c)
             self.layers.append(c)
