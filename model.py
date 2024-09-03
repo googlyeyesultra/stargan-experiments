@@ -118,4 +118,4 @@ class Discriminator(nn.Module):
         for d in random.sample(list(self.ds), subset_num):
             result += d(x, labels)
         
-        return result
+        return result / subset_num
