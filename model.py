@@ -108,7 +108,7 @@ class Discriminator(nn.Module):
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super().__init__()
         self.ds = nn.ModuleList()
-        for i in range(3):
+        for i in range(5):
             self.ds.append(MiniDiscriminator(image_size, conv_dim, c_dim, repeat_num))
             
     def forward(self, x, labels):
