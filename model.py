@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm, weight_norm
-
+import random
 
 class ResidualBlock(nn.Module):
     """Residual Block with instance normalization."""
@@ -112,8 +112,10 @@ class Discriminator(nn.Module):
             self.ds.append(MiniDiscriminator(image_size, conv_dim, c_dim, repeat_num))
             
     def forward(self, x, labels):
+        subset_size = random.randint(1, len(self.ds))
+        indices = list(range(len(self.ds)))
         result = 0
-        for d in self.ds:
-            result += d(x, labels)
+        for i in random.sample(indices, subset_size):
+            result += self.ds[i](x, labels)
         
-        return result / len(self.ds)
+        return result / subset_size
