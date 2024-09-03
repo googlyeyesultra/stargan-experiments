@@ -74,7 +74,7 @@ class Generator(nn.Module):
         return self.layers(x)
 
 
-class Discriminator(nn.Module):
+class MiniDiscriminator(nn.Module):
     """Discriminator network with PatchGAN."""
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super(Discriminator, self).__init__()
@@ -103,3 +103,17 @@ class Discriminator(nn.Module):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
         return h[labels].mean()
+    
+class Discriminator(nn.Module):
+    def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
+        super().__init__()
+        self.ds = nn.ModuleList()
+        for i in range(5):
+            self.ds.append(MiniDiscriminator(image_size, conv_dim, c_dim, repeat_num))
+            
+    def forward(self, x, labels):
+        result = 0
+        for d in self.ds:
+            result += d(x, labels)
+        
+        return result
