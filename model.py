@@ -85,6 +85,6 @@ class Discriminator(nn.Module):
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
         return h[labels].mean()
 
-    def forward_all_labels(x):  # For gp
+    def forward_all_labels(self, x):  # For gp
         h = self.main(x).squeeze(dim=(2, 3))
         return h.mean()
