@@ -85,7 +85,7 @@ class Discriminator(nn.Module):
         layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
-        for i in range(1, repeat_num):
+        for i in range(1, repeat_num-1):
             conv = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
             spectral_norm(conv)
             layers.append(conv)
@@ -93,13 +93,21 @@ class Discriminator(nn.Module):
             curr_dim = curr_dim * 2
 
         kernel_size = int(image_size / np.power(2, repeat_num))
-        conv = nn.Conv2d(curr_dim, c_dim*2, kernel_size=kernel_size, stride=1, padding=0, bias=True)
+        self.last = nn.Sequential()
+        conv = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
         spectral_norm(conv)
-        layers.append(conv)
+        self.last.append(conv)
+        self.last.append(nn.LeakyReLU(0.01))
+        curr_dim = curr_dim * 2
+        c = nn.Conv2d(curr_dim, c_dim*2, kernel_size=kernel_size, stride=1, padding=0, bias=True)
+        spectral_norm(c)
+        self.last.append(c)
         self.main = nn.Sequential(*layers)
-
         
     def forward(self, x, labels):
-        h = self.main(x).squeeze(dim=(2, 3))
+        h = self.last(self.main(x)).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
         return h[labels].mean()
+    
+    def partial(self, x):
+        return self.main(x)
