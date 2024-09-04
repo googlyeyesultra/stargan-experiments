@@ -178,7 +178,19 @@ class Solver(object):
             return F.binary_cross_entropy_with_logits(logit, target, size_average=False) / logit.size(0)
         elif dataset == 'RaFD':
             return F.cross_entropy(logit, target)
-
+        
+    def r1_gp(self, d_out, real):
+        # Zero centered gradient penalty for real images.
+        # Based on https://github.com/clovaai/stargan-v2/blob/master/core/solver.
+        
+        grad = torch.autograd.grad(
+            outputs=d_out, inputs=real,
+            create_graph=True, retain_graph=True, only_inputs=True)[0]
+        grad_sqr = grad.pow(2)
+        
+        reg = .5 * grad_sqr.sum()
+        return reg
+    
     def train(self):
         """Train StarGAN within a single dataset."""
         # Set data loader.
@@ -239,10 +251,13 @@ class Solver(object):
             # =================================================================================== #
             #                             2. Train the discriminator                              #
             # =================================================================================== #
+            x_real.requires_grad_()
 
             # Compute loss with real images.
             out_src = self.D(x_real, c_org)
             d_loss_real = -torch.mean(out_src)
+            
+            d_loss_reg = self.r1_gp(out_src, x_real)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
@@ -256,7 +271,7 @@ class Solver(object):
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
-            d_loss = d_loss_real + d_loss_fake + self.lambda_gp * d_loss_gp
+            d_loss = d_loss_real + d_loss_fake + 10 * d_loss_reg
             self.reset_grad()
             d_loss.backward()
             self.d_optimizer.step()
