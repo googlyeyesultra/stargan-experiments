@@ -258,6 +258,10 @@ class Solver(object):
 
                 # Use discriminator features to ensure similarity between original and generated.
                 g_loss_rec = torch.mean(torch.abs(self.D.partial(x_real) - self.D.partial(x_fake)))
+                
+                # Identity loss (instead of cycle consistency).
+                x_reconst = self.G(x_real, c_org)
+                g_loss_rec += torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
                 g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
