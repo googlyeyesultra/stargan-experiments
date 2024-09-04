@@ -102,4 +102,4 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
-        return h[labels].mean()
+        return h[labels].min()
