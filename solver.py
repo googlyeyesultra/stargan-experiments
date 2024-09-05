@@ -257,8 +257,8 @@ class Solver(object):
                 out_src = self.D(x_fake, c_trg)
                 g_loss_fake = -out_src.mean()
 
-                # Identity loss (instead of cycle consistency).
-                x_reconst = self.G(x_real, c_org, c_org)
+                # Cycle consistency.
+                x_reconst = self.G(x_fake, c_org, c_trg)
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
