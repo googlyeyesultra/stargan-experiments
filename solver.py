@@ -179,7 +179,7 @@ class Solver(object):
         data_iter = iter(data_loader)
         x_fixed, c_org = next(data_iter)
         x_fixed = x_fixed.to(self.device)
-        c_org_fixed = c_org.to(self.device)
+        fixed_c_org = c_org.to(self.device)
         c_fixed_list = self.create_labels(c_org, self.c_dim, self.dataset, self.selected_attrs)
 
         # Learning rate cache for decaying.
@@ -301,8 +301,9 @@ class Solver(object):
                         best_score = -float("inf")
                         best = None
                         for g in self.Gs:
-                            fake = g(x_fixed, c_fixed, c_org_fixed)
-                            score = self.D(fake, c_fixed)
+                            fake = g(x_fixed, c_fixed)
+                            recon = g(fake, fixed_c_org)
+                            score = self.D(fake, c_fixed) - (recon-x_fixed).abs().mean()
                             if score >= best_score:
                                 best = fake
                                 best_score = score
