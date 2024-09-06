@@ -301,8 +301,8 @@ class Solver(object):
                         best_score = -float("inf")
                         best = None
                         for g in self.Gs:
-                            fake = g(x_fixed, c_fixed)
-                            recon = g(fake, fixed_c_org)
+                            fake = g(x_fixed, c_fixed, fixed_c_org)
+                            recon = g(fake, fixed_c_org, c_fixed)
                             score = self.D(fake, c_fixed) - (recon-x_fixed).abs().mean()
                             if score >= best_score:
                                 best = fake
