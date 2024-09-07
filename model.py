@@ -61,7 +61,7 @@ class Generator(nn.Module):
         style_dim = 64
 
         self.down = nn.Sequential()
-        c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
+        c = nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.down.append(c)
         self.down.append(nn.ReLU(inplace=True))
