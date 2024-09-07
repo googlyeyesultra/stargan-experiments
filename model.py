@@ -52,7 +52,6 @@ class ResidualBlock(nn.Module):
         f = self.activ(f)
         f = self.c2(f, style)
         return x + f
-    
 
 class Generator(nn.Module):
     """Generator network."""
@@ -91,13 +90,15 @@ class Generator(nn.Module):
             self.up.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
+        self.final_res = nn.ModuleList()
         for i in range(3):
-            self.up.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
+        self.final = nn.Sequential()
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
-        self.up.append(c)
-        self.up.append(nn.Tanh())
+        self.final.append(c)
+        self.final.append(nn.Tanh())
         
         
         self.style_net = nn.Sequential()
@@ -122,7 +123,12 @@ class Generator(nn.Module):
         for l in self.modlayers:
             x = l(x, style)
             
-        return self.up(x)
+        x = self.up(x)
+        
+        for l in self.final_res:
+            x = l(x, style)
+            
+        return self.final(x)
 
 
 class Discriminator(nn.Module):
