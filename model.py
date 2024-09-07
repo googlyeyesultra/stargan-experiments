@@ -5,63 +5,111 @@ import numpy as np
 from torch.nn.utils.parametrizations import spectral_norm, weight_norm
 
 
-class ResidualBlock(nn.Module):
-    """Residual Block with instance normalization."""
-    def __init__(self, dim_in, dim_out):
-        super(ResidualBlock, self).__init__()
-        self.main = nn.Sequential()
-        c = nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
-        weight_norm(c)
-        self.main.append(c)
-        self.main.append(nn.ReLU(inplace=True))
-        c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
-        weight_norm(c2)
-        self.main.append(c2)
+# Simplified adaptation of modulated convolution in https://github.com/rosinality/stylegan2-pytorch/blob/master/model.py
+class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
+    def __init__(self, in_channel, out_channel, kernel_size, style_dim):
+        super().__init__()
+        self.eps = 1e-8
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.kernel_size = kernel_size
         
-    def forward(self, x):
-        return x + self.main(x)
+        fan_in = in_channel * kernel_size ** 2
+        self.scale = 1 / fan_in ** .5
+        self.padding = kernel_size // 2
+        
+        self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
+        self.modulation = nn.Linear(style_dim, in_channel)
+        
+        weight_norm(self.weight)
+        weight_norm(self.modulation)
+        
+    def forward(self, x, style):
+        batch, in_channel, height, width = x.shape
+        style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
+        weight = self.scale * self.weight * style
+        demod = torch.rsqrt(weight.pow(2).sum([2, 3, 4]) + self.eps)
+        weight = weight * demod.view(batch, self.out_channel, 1, 1, 1)
+        weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
+        
+        x = x.view(1, batch * in_channel, height, width)
+        out = F.conv2d(x, weight, padding=self.padding, groups=batch, padding_mode="reflect")
+        _, _, height, width = out.shape
+        out = out.view(batch, self.out_channel, height, width)
+        return out
 
+
+class ResidualBlock(nn.Module):
+    def __init__(self, dim_in, dim_out, style_dim):
+        super(ResidualBlock, self).__init__()
+        self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim)
+        self.activ = nn.ReLU(inplace=True)
+        self.c2 = ModConv(dim_out, dim_out, kernel_size=3, style_dim=style_dim)
+        weight_norm(self.c2)
+        
+    def forward(self, x, style):
+        f = self.c1(x, style)
+        f = self.activ(f)
+        f = self.c2(f, style)
+        return x + f
+    
 
 class Generator(nn.Module):
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
+        
+        style_dim = 64
 
-        self.layers = nn.Sequential()
+        self.down = nn.Sequential()
         c = nn.Conv2d(3 + c_dim, conv_dim, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
-        self.layers.append(c)
-        self.layers.append(nn.ReLU(inplace=True))
+        self.down.append(c)
+        self.down.append(nn.ReLU(inplace=True))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
             c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, padding_mode="reflect")
             weight_norm(c)
-            self.layers.append(c)
-            self.layers.append(nn.ReLU(inplace=True))
+            self.down.append(c)
+            self.down.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim * 2
 
+        self.modlayers = nn.ModuleList()
         # Bottleneck layers.
         for i in range(repeat_num):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.modlayers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
+        self.up = nn.Sequential()
         # Up-sampling layers.
         for i in range(2):
-            self.layers.append(nn.Upsample(scale_factor=2, mode="bilinear"))
+            self.up.append(nn.Upsample(scale_factor=2, mode="bilinear"))
             c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
             weight_norm(c)
-            self.layers.append(c)
-            self.layers.append(nn.ReLU(inplace=True))
+            self.up.append(c)
+            self.up.append(nn.ReLU(inplace=True))
             curr_dim = curr_dim // 2
 
         for i in range(3):
-            self.layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.up.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
-        self.layers.append(c)
-        self.layers.append(nn.Tanh())
+        self.up.append(c)
+        self.up.append(nn.Tanh())
+        
+        
+        self.style_net = nn.Sequential()
+        l = nn.Linear(c_dim, style_dim)
+        weight_norm(l)
+        self.style_net.append(l)
+        self.style_net.append(nn.ReLU(inplace=True))
+        for i in range(5):
+            l = nn.Linear(style_dim, style_dim)
+            weight_norm(l)
+            self.style_net.append(l)
+            self.style_net.append(nn.ReLU(inplace=True))
 
     def forward(self, im, c, orig_labels):
         # Replicate spatially and concatenate domain information.
@@ -69,10 +117,12 @@ class Generator(nn.Module):
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         c = c - orig_labels
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, im.size(2), im.size(3))
-        x = torch.cat([im, c], dim=1)
-        return self.layers(x)
+        style = self.style_net(c)
+        x = self.down(im)
+        for l in self.modlayers:
+            x = l(x, style)
+            
+        return self.up(x)
 
 
 class Discriminator(nn.Module):
