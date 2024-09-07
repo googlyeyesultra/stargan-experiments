@@ -33,7 +33,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
         
         x = x.view(1, batch * in_channel, height, width)
-        out = F.conv2d(x, weight, padding=self.padding, groups=batch, padding_mode="reflect")
+        out = F.conv2d(x, weight, padding=self.padding, groups=batch)  # TODO functional doesn't support reflect padding.
         _, _, height, width = out.shape
         out = out.view(batch, self.out_channel, height, width)
         return out
@@ -44,7 +44,7 @@ class ResidualBlock(nn.Module):
         super(ResidualBlock, self).__init__()
         self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim)
         self.activ = nn.ReLU(inplace=True)
-        self.c2 = ModConv(dim_out, dim_out, kernel_size=3, style_dim=style_dim)
+        self.c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
         weight_norm(self.c2)
         
     def forward(self, x, style):
