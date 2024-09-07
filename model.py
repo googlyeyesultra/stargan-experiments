@@ -22,7 +22,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         self.modulation = nn.Linear(style_dim, in_channel)
         
         #weight_norm(self.weight)  # Can't weight norm this
-        weight_norm(self.modulation)
+        spectral_norm(self.modulation)
         
     def forward(self, x, style):
         batch, in_channel, height, width = x.shape
@@ -34,6 +34,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         
         x = x.view(1, batch * in_channel, height, width)
         out = F.conv2d(x, weight, padding=self.padding, groups=batch)  # TODO functional doesn't support reflect padding.
+        # TODO BIAS
         _, _, height, width = out.shape
         out = out.view(batch, self.out_channel, height, width)
         return out
