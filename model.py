@@ -21,7 +21,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
         self.modulation = nn.Linear(style_dim, in_channel)
         
-        weight_norm(self.weight)
+        #weight_norm(self.weight)  # Can't weight norm this
         weight_norm(self.modulation)
         
     def forward(self, x, style):
