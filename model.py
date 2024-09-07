@@ -22,7 +22,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         self.modulation = nn.Linear(style_dim, in_channel)
         
         #weight_norm(self.weight)  # Can't weight norm this
-        spectral_norm(self.modulation)
+        #spectral_norm(self.modulation)
         
     def forward(self, x, style):
         batch, in_channel, height, width = x.shape
