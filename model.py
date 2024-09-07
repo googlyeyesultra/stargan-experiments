@@ -92,7 +92,7 @@ class Generator(nn.Module):
 
         self.final_res = nn.ModuleList()
         for i in range(3):
-            self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
         c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
