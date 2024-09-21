@@ -52,7 +52,7 @@ class ResidualBlock(nn.Module):
     def forward(self, x, style):
         f = self.c1(x, style)
         f = self.activ(f)
-        f = self.c2(f)
+        f = self.c2(f, style)
         return x + f
 
 class Generator(nn.Module):
