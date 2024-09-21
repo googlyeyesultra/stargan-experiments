@@ -21,7 +21,6 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         
         self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
         self.modulation = nn.Linear(style_dim, in_channel)
-        self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         
         # weight_norm(self.weight)  # Can't weight norm this
         weight_norm(self.modulation)
@@ -39,7 +38,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         out = F.conv2d(x, weight, groups=batch, padding=self.padding, stride=self.stride)
         _, _, height, width = out.shape
         out = out.view(batch, self.out_channel, height, width)
-        return out + self.bias
+        return out
 
 
 class ResidualBlock(nn.Module):
