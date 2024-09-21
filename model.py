@@ -7,7 +7,7 @@ from torch.nn.utils.parametrizations import spectral_norm, weight_norm
 
 # Simplified adaptation of modulated convolution in https://github.com/rosinality/stylegan2-pytorch/blob/master/model.py
 class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
-    def __init__(self, in_channel, out_channel, kernel_size, style_dim):
+    def __init__(self, in_channel, out_channel, kernel_size, style_dim, padding, stride=1):
         super().__init__()
         self.eps = 1e-8
         self.in_channel = in_channel
@@ -16,12 +16,14 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         
         fan_in = in_channel * kernel_size ** 2
         self.scale = 1 / fan_in ** .5
-        self.padding = kernel_size // 2
+        self.padding = padding
+        self.stride = stride
         
         self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
         self.modulation = nn.Linear(style_dim, in_channel)
+        self.bias = nn.Parameter(torch.randn(1, out_channel))
         
-        #weight_norm(self.weight)  # Can't weight norm this
+        # weight_norm(self.weight)  # Can't weight norm this
         weight_norm(self.modulation)
         
     def forward(self, x, style):
@@ -33,19 +35,19 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
         
         x = x.view(1, batch * in_channel, height, width)
-        out = F.conv2d(x, weight, padding=self.padding, groups=batch)  # TODO functional doesn't support reflect padding.
+        padded = F.pad(x, padding=self.padding, mode="reflect")
+        out = F.conv2d(padded, weight, groups=batch, stride=self.stride)
         _, _, height, width = out.shape
         out = out.view(batch, self.out_channel, height, width)
-        return out
+        return out + self.bias
 
 
 class ResidualBlock(nn.Module):
     def __init__(self, dim_in, dim_out, style_dim):
         super(ResidualBlock, self).__init__()
-        self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim)
+        self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
         self.activ = nn.ReLU(inplace=True)
-        self.c2 = nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, padding_mode="reflect")
-        weight_norm(self.c2)
+        self.c2 = ModConv(dim_out, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
         
     def forward(self, x, style):
         f = self.c1(x, style)
@@ -60,19 +62,13 @@ class Generator(nn.Module):
         
         style_dim = 64
 
-        self.down = nn.Sequential()
-        c = nn.Conv2d(3, conv_dim, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
-        weight_norm(c)
-        self.down.append(c)
-        self.down.append(nn.ReLU(inplace=True))
+        self.down = nn.ModuleList()
+        self.down.append(ModConv(3, conv_dim, kernel_size=7, padding=3, style_dim=style_dim))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            c = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, padding_mode="reflect")
-            weight_norm(c)
-            self.down.append(c)
-            self.down.append(nn.ReLU(inplace=True))
+            self.down.append(ModConv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, style_dim=style_dim))
             curr_dim = curr_dim * 2
 
         self.modlayers = nn.ModuleList()
@@ -112,14 +108,18 @@ class Generator(nn.Module):
             self.style_net.append(l)
             self.style_net.append(nn.ReLU(inplace=True))
 
-    def forward(self, im, c, orig_labels):
+    def forward(self, x, c, orig_labels):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
         c = c - orig_labels
         style = self.style_net(c)
-        x = self.down(im)
+        
+        for l in self.down:
+            x = l(x, style)
+            x = F.relu(x, inplace=True)
+        
         for l in self.modlayers:
             x = l(x, style)
             
