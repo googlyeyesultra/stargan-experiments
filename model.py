@@ -35,8 +35,8 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
         
         x = x.view(1, batch * in_channel, height, width)
-        padded = F.pad(x, (self.padding, self.padding, self.padding, self.padding), mode="reflect")
-        out = F.conv2d(padded, weight, groups=batch, stride=self.stride)
+        #padded = F.pad(x, (self.padding, self.padding, self.padding, self.padding), mode="reflect")
+        out = F.conv2d(x, weight, groups=batch, padding=self.padding, stride=self.stride)
         _, _, height, width = out.shape
         out = out.view(batch, self.out_channel, height, width)
         return out + self.bias
