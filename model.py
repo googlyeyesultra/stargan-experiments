@@ -20,7 +20,17 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         self.stride = stride
         
         self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
-        self.modulation = nn.Linear(style_dim, in_channel)
+        self.modulation = nn.Sequential()
+        for i in range(5):
+            lin = nn.Linear(style_dim, style_dim)
+            weight_norm(lin)
+            self.modulation.append(lin)
+            self.modulation.append(nn.ReLU(inplace=True))
+            
+        lin = nn.Linear(style_dim, in_channel)
+        weight_norm(lin)
+        self.modulation.append(lin)
+        
         self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         
         # weight_norm(self.weight)  # Can't weight norm this
