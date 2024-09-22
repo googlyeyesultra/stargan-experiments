@@ -137,6 +137,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         
         self.style_net = nn.Sequential()
+        conv_dim //= 2
         style_dim = 64
         l = nn.Linear(c_dim, style_dim)
         spectral_norm(l)
@@ -153,7 +154,7 @@ class Discriminator(nn.Module):
         spectral_norm(conv)
         self.layers.append(conv)
 
-        curr_dim = conv_dim // 2
+        curr_dim = conv_dim
         for i in range(1, repeat_num):
             conv = ModConv(curr_dim, curr_dim*2, kernel_size=4, style_dim=style_dim, stride=2, padding=1)
             spectral_norm(conv)
