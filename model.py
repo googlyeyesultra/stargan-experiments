@@ -60,7 +60,7 @@ class Generator(nn.Module):
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
         
-        style_dim = 64
+        style_dim = 256
 
         self.down = nn.ModuleList()
         self.down.append(ModConv(3, conv_dim, kernel_size=7, padding=3, style_dim=style_dim))
