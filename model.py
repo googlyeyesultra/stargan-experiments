@@ -113,7 +113,7 @@ class Generator(nn.Module):
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
-        c = c - orig_labels
+        #c = c - orig_labels
         style = self.style_net(c)
         
         for l in self.down:
