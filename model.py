@@ -24,7 +24,7 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         
         # weight_norm(self.weight)  # Can't weight norm this
-        weight_norm(self.modulation)
+        # weight_norm(self.modulation)
         
     def forward(self, x, style):
         batch, in_channel, height, width = x.shape
@@ -135,28 +135,42 @@ class Discriminator(nn.Module):
     """Discriminator network with PatchGAN."""
     def __init__(self, image_size=128, conv_dim=64, c_dim=5, repeat_num=6):
         super(Discriminator, self).__init__()
-        layers = []
-        conv = nn.Conv2d(3, conv_dim, kernel_size=4, stride=2, padding=1)
+        
+        self.style_net = nn.Sequential()
+        style_dim = 64
+        l = nn.Linear(c_dim, style_dim)
+        spectral_norm(l)
+        self.style_net.append(l)
+        self.style_net.append(nn.ReLU(inplace=True))
+        for i in range(5):
+            l = nn.Linear(style_dim, style_dim)
+            spectral_norm(l)
+            self.style_net.append(l)
+            self.style_net.append(nn.ReLU(inplace=True))
+        
+        self.layers = nn.ModuleList()
+        conv = ModConv(3, conv_dim, kernel_size=4, style_dim=style_dim, stride=2, padding=1)
         spectral_norm(conv)
-        layers.append(conv)
-        layers.append(nn.LeakyReLU(0.01))
+        self.layers.append(conv)
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
-            conv = nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1)
+            conv = ModConv(curr_dim, curr_dim*2, kernel_size=4, style_dim=style_dim, stride=2, padding=1)
             spectral_norm(conv)
-            layers.append(conv)
-            layers.append(nn.LeakyReLU(0.01))
+            self.layers.append(conv)
             curr_dim = curr_dim * 2
 
         kernel_size = int(image_size / np.power(2, repeat_num))
-        conv = nn.Conv2d(curr_dim, c_dim*2, kernel_size=kernel_size, stride=1, padding=0, bias=True)
+        conv = ModConv(curr_dim, 1, kernel_size=kernel_size, style_dim=style_dim, stride=1, padding=0)
         spectral_norm(conv)
-        layers.append(conv)
-        self.main = nn.Sequential(*layers)
+        self.layers.append(conv)
 
         
     def forward(self, x, labels):
-        h = self.main(x).squeeze(dim=(2, 3))
-        labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
-        return h[labels].mean()
+        style = self.style_net(labels)
+        
+        for l in self.layers:
+            x = l(x, style)
+            x = F.leaky_relu_(x, .01)
+        
+        return x.squeeze(dim=(2, 3))
