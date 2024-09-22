@@ -154,7 +154,6 @@ class Discriminator(nn.Module):
         self.layers.append(conv)
 
         curr_dim = conv_dim // 2
-        repeat_num = 4
         for i in range(1, repeat_num):
             conv = ModConv(curr_dim, curr_dim*2, kernel_size=4, style_dim=style_dim, stride=2, padding=1)
             spectral_norm(conv)
