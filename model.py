@@ -77,13 +77,15 @@ class Generator(nn.Module):
             self.modlayers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.up = nn.ModuleList()
+        curr_dim *= 2  # Unet
         # Up-sampling layers.
         for i in range(2):
             self.up.append(ModConv(curr_dim, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
         self.final_res = nn.ModuleList()
-        for i in range(3):
+        self.final_res.append(ResidualBlock(dim_in=curr_dim+3, dim_out=curr_dim, style_dim=style_dim))
+        for i in range(2):
             self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
@@ -109,6 +111,7 @@ class Generator(nn.Module):
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
         
+        im = x
         c = c - orig_labels
         style = self.style_net(c)
         
@@ -121,11 +124,13 @@ class Generator(nn.Module):
         for l in self.modlayers:
             x = l(x, style)
             
-        for l in self.up:
+        for l, res in zip(self.up, residuals):
             x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
+            x = torch.cat(x, res)
             x = l(x, style)
             x = F.relu(x, inplace=True)
         
+        x = torch.cat(im, x)
         for l in self.final_res:
             x = l(x, style)
             
