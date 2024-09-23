@@ -76,14 +76,10 @@ class Generator(nn.Module):
         for i in range(repeat_num):
             self.modlayers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
-        self.up = nn.Sequential()
+        self.up = nn.ModuleList()
         # Up-sampling layers.
         for i in range(2):
-            self.up.append(nn.Upsample(scale_factor=2, mode="bilinear"))
-            c = nn.Conv2d(curr_dim, curr_dim//2, kernel_size=5, padding=2, padding_mode="reflect")
-            weight_norm(c)
-            self.up.append(c)
-            self.up.append(nn.ReLU(inplace=True))
+            self.up.append(ModConv(curr_dim, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
         self.final_res = nn.ModuleList()
@@ -116,14 +112,19 @@ class Generator(nn.Module):
         c = c - orig_labels
         style = self.style_net(c)
         
+        residuals = []
         for l in self.down:
             x = l(x, style)
+            residuals.append(x)
             x = F.relu(x, inplace=True)
         
         for l in self.modlayers:
             x = l(x, style)
             
-        x = self.up(x)
+        for l in self.up:
+            x = F.upsample_bilinear(x)
+            x = l(x, style)
+            x = F.relu(x, inplace=True)
         
         for l in self.final_res:
             x = l(x, style)
