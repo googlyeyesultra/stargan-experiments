@@ -122,7 +122,7 @@ class Generator(nn.Module):
             x = l(x, style)
             
         for l in self.up:
-            x = F.interpolate(x, scale_factor=2, mode="nearest", align_corners=True)
+            x = F.interpolate(x, scale_factor=2, mode="nearest")
             x = l(x, style)
             x = F.relu(x, inplace=True)
         
