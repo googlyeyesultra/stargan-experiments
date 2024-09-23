@@ -112,10 +112,8 @@ class Generator(nn.Module):
         c = c - orig_labels
         style = self.style_net(c)
         
-        residuals = []
         for l in self.down:
             x = l(x, style)
-            residuals.append(x)
             x = F.relu(x, inplace=True)
         
         for l in self.modlayers:
