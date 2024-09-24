@@ -82,9 +82,12 @@ class Generator(nn.Module):
             self.up.append(ModConv(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
+        self.add_im = nn.Sequential()
+        self.add_im.append(nn.Conv2d(curr_dim+3, curr_dim, 3, 1, 1))
+        self.add_im.append(nn.ReLU(inplace=True))
+        
         self.final_res = nn.ModuleList()
-        self.final_res.append(ResidualBlock(dim_in=curr_dim+3, dim_out=curr_dim, style_dim=style_dim))
-        for i in range(2):
+        for i in range(3):
             self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
@@ -130,6 +133,7 @@ class Generator(nn.Module):
             x = F.relu(x, inplace=True)
         
         x = torch.cat((im, x), dim=1)
+        x = self.add_im(x)
         for l in self.final_res:
             x = l(x, style)
             
