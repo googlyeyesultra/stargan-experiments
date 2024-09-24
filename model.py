@@ -42,12 +42,25 @@ class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
         return out + self.bias
 
 
+class ModConvBlock(nn.Module):
+    def __init__(self, in_channel, out_channel, kernel_size, style_dim, padding, stride=1):
+        super().__init__()
+        self.modconv = ModConv(in_channel, out_channel, kernel_size, style_dim, padding, stride)
+        self.conv = nn.Conv2d(out_channel, out_channel, 3, 1, 1)
+        weight_norm(self.conv)
+        
+    def forward(self, x, style):
+        x = self.modconv(x, style)
+        x = F.relu_(x)
+        return self.conv(x)
+
+
 class ResidualBlock(nn.Module):
     def __init__(self, dim_in, dim_out, style_dim):
         super(ResidualBlock, self).__init__()
-        self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
+        self.c1 = ModConvBlock(dim_in, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
         self.activ = nn.ReLU(inplace=True)
-        self.c2 = ModConv(dim_out, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
+        self.c2 = ModConvBlock(dim_out, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
         
     def forward(self, x, style):
         f = self.c1(x, style)
@@ -63,12 +76,12 @@ class Generator(nn.Module):
         style_dim = 64
 
         self.down = nn.ModuleList()
-        self.down.append(ModConv(3, conv_dim, kernel_size=7, padding=3, style_dim=style_dim))
+        self.down.append(ModConvBlock(3, conv_dim, kernel_size=7, padding=3, style_dim=style_dim))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            self.down.append(ModConv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, style_dim=style_dim))
+            self.down.append(ModConvBlock(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, style_dim=style_dim))
             curr_dim = curr_dim * 2
 
         self.modlayers = nn.ModuleList()
@@ -79,7 +92,7 @@ class Generator(nn.Module):
         self.up = nn.ModuleList()
         # Up-sampling layers.
         for i in range(2):
-            self.up.append(ModConv(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
+            self.up.append(ModConvBlock(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
         self.add_im = nn.Sequential()
