@@ -79,7 +79,7 @@ class Generator(nn.Module):
         self.up = nn.ModuleList()
         # Up-sampling layers.
         for i in range(2):
-            self.up.append(ModConv(curr_dim*2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
+            self.up.append(ModConv(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
         self.final_res = nn.ModuleList()
