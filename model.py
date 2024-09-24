@@ -126,11 +126,11 @@ class Generator(nn.Module):
             
         for l, res in zip(self.up, residuals):
             x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
-            x = torch.cat(x, res)
+            x = torch.cat((x, res), dim=1)
             x = l(x, style)
             x = F.relu(x, inplace=True)
         
-        x = torch.cat(im, x)
+        x = torch.cat((im, x), dim=1)
         for l in self.final_res:
             x = l(x, style)
             
