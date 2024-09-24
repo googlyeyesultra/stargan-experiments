@@ -79,7 +79,9 @@ class Generator(nn.Module):
         self.up = nn.ModuleList()
         # Up-sampling layers.
         for i in range(2):
-            self.up.append(ModConv(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
+            c = nn.Conv2d(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2)
+            weight_norm(c)
+            self.up.append(c)
             curr_dim = curr_dim // 2
 
         self.add_im = nn.Sequential()
@@ -129,7 +131,7 @@ class Generator(nn.Module):
         for l, res in zip(self.up, residuals[1::-1]):
             x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
             x = torch.cat((x, res), dim=1)
-            x = l(x, style)
+            x = l(x)
             x = F.relu(x, inplace=True)
         
         x = torch.cat((im, x), dim=1)
