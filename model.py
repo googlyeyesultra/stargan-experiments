@@ -124,7 +124,7 @@ class Generator(nn.Module):
         for l in self.modlayers:
             x = l(x, style)
             
-        for l, res in zip(self.up, residuals):
+        for l, res in zip(self.up, residuals[::-1]):
             x = F.interpolate(x, scale_factor=2, mode="bilinear", align_corners=True)
             x = torch.cat((x, res), dim=1)
             x = l(x, style)
