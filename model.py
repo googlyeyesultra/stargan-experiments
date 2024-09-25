@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
         self.modlayers = nn.ModuleList()
         # Bottleneck layers.
-        for i in range(repeat_num):
+        for i in range(2):
             self.modlayers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.up = nn.ModuleList()
@@ -87,7 +87,7 @@ class Generator(nn.Module):
         self.add_im.append(nn.ReLU(inplace=True))
         
         self.final_res = nn.ModuleList()
-        for i in range(3):
+        for i in range(1):
             self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
