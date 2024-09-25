@@ -138,7 +138,7 @@ class Generator(nn.Module):
             
         x = self.final(x)
         
-        x = self.layers(x).tanh_()
+        x = x.tanh_()
         sign = x.sign()
         a = x * (1-im)
         b = x * (1+im)
