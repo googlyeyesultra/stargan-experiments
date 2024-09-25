@@ -91,11 +91,9 @@ class Generator(nn.Module):
             self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
-        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
+        c = nn.Conv2d(curr_dim, 3 * 2, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.final.append(c)
-        self.final.append(nn.Tanh())
-        
         
         self.style_net = nn.Sequential()
         l = nn.Linear(c_dim, style_dim)
@@ -137,7 +135,14 @@ class Generator(nn.Module):
         for l in self.final_res:
             x = l(x, style)
             
-        return self.final(x)
+        x = self.final(x)
+        
+        vals = x.unflatten(dim=1, sizes=(2, 3))
+        intercept = vals[:,0,:,:,:].tanh()
+        slope = vals[:,1,:,:,:].tanh() * (1-intercept.abs())
+        
+        return slope * im + intercept
+
 
 
 class Discriminator(nn.Module):
