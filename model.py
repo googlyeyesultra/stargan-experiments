@@ -60,6 +60,10 @@ class Generator(nn.Module):
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
         
+        
+        self.poly_degree = 3
+        self.poly_eps = .01
+        
         style_dim = 64
 
         self.down = nn.ModuleList()
@@ -91,10 +95,9 @@ class Generator(nn.Module):
             self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
         self.final = nn.Sequential()
-        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
+        c = nn.Conv2d(curr_dim, 3 * (self.poly_degree+1), kernel_size=7, stride=1, padding=3, padding_mode="reflect")
         weight_norm(c)
         self.final.append(c)
-        self.final.append(nn.Tanh())
         
         
         self.style_net = nn.Sequential()
@@ -137,7 +140,14 @@ class Generator(nn.Module):
         for l in self.final_res:
             x = l(x, style)
             
-        return self.final(x)
+        x = self.final(x)
+    
+        num = x.unflatten(dim=1, sizes=(self.poly_degree+1, 3))
+        denom = num.abs().sum(dim=1, keepdim=True) + self.poly_eps
+        coeffs = num / denom
+
+        pows = torch.stack([im.pow(i) for i in range(self.poly_degree+1)], dim=1)
+        return (pows * coeffs).sum(1)
 
 
 class Discriminator(nn.Module):
