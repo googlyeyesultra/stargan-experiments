@@ -262,7 +262,7 @@ class Solver(object):
                 g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
 
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
+                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec * 1.0003^(-i)
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
