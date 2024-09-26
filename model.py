@@ -2,64 +2,142 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from torch.nn.utils.parametrizations import spectral_norm, weight_norm
+
+
+# Simplified adaptation of modulated convolution in https://github.com/rosinality/stylegan2-pytorch/blob/master/model.py
+class ModConv(nn.Module):  # Modulated convolution like StyleGAN 2.
+    def __init__(self, in_channel, out_channel, kernel_size, style_dim, padding, stride=1):
+        super().__init__()
+        self.eps = 1e-8
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.kernel_size = kernel_size
+        
+        fan_in = in_channel * kernel_size ** 2
+        self.scale = 1 / fan_in ** .5
+        self.padding = padding
+        self.stride = stride
+        
+        self.weight = nn.Parameter(torch.randn(1, out_channel, in_channel, kernel_size, kernel_size))
+        self.modulation = nn.Linear(style_dim, in_channel)
+        self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
+        
+        # weight_norm(self.weight)  # Can't weight norm this
+        weight_norm(self.modulation)
+        
+    def forward(self, x, style):
+        batch, in_channel, height, width = x.shape
+        style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
+        weight = self.scale * self.weight * style
+        demod = torch.rsqrt(weight.pow(2).sum([2, 3, 4]) + self.eps)
+        weight = weight * demod.view(batch, self.out_channel, 1, 1, 1)
+        weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
+        
+        x = x.view(1, batch * in_channel, height, width)
+        #padded = F.pad(x, (self.padding, self.padding, self.padding, self.padding), mode="reflect")
+        out = F.conv2d(x, weight, groups=batch, padding=self.padding, stride=self.stride)
+        _, _, height, width = out.shape
+        out = out.view(batch, self.out_channel, height, width)
+        return out + self.bias
 
 
 class ResidualBlock(nn.Module):
-    """Residual Block with instance normalization."""
-    def __init__(self, dim_in, dim_out):
+    def __init__(self, dim_in, dim_out, style_dim):
         super(ResidualBlock, self).__init__()
-        self.main = nn.Sequential(
-            nn.Conv2d(dim_in, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(dim_out, dim_out, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.InstanceNorm2d(dim_out, affine=True, track_running_stats=True))
-
-    def forward(self, x):
-        return x + self.main(x)
-
+        self.c1 = ModConv(dim_in, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
+        self.activ = nn.ReLU(inplace=True)
+        self.c2 = ModConv(dim_out, dim_out, kernel_size=3, style_dim=style_dim, padding=1)
+        
+    def forward(self, x, style):
+        f = self.c1(x, style)
+        f = self.activ(f)
+        f = self.c2(f, style)
+        return x + f
 
 class Generator(nn.Module):
     """Generator network."""
     def __init__(self, conv_dim=64, c_dim=5, repeat_num=6):
         super(Generator, self).__init__()
+        
+        style_dim = 64
 
-        layers = []
-        layers.append(nn.Conv2d(3+c_dim, conv_dim, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.InstanceNorm2d(conv_dim, affine=True, track_running_stats=True))
-        layers.append(nn.ReLU(inplace=True))
+        self.down = nn.ModuleList()
+        self.down.append(ModConv(3, conv_dim, kernel_size=7, padding=3, style_dim=style_dim))
 
         # Down-sampling layers.
         curr_dim = conv_dim
         for i in range(2):
-            layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim*2, affine=True, track_running_stats=True))
-            layers.append(nn.ReLU(inplace=True))
+            self.down.append(ModConv(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1, style_dim=style_dim))
             curr_dim = curr_dim * 2
 
+        self.modlayers = nn.ModuleList()
         # Bottleneck layers.
         for i in range(repeat_num):
-            layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
+            self.modlayers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
+        self.up = nn.ModuleList()
         # Up-sampling layers.
         for i in range(2):
-            layers.append(nn.ConvTranspose2d(curr_dim, curr_dim//2, kernel_size=4, stride=2, padding=1, bias=False))
-            layers.append(nn.InstanceNorm2d(curr_dim//2, affine=True, track_running_stats=True))
-            layers.append(nn.ReLU(inplace=True))
+            self.up.append(ModConv(curr_dim*3//2, curr_dim//2, kernel_size=5, stride=1, padding=2, style_dim=style_dim))
             curr_dim = curr_dim // 2
 
-        layers.append(nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, bias=False))
-        layers.append(nn.Tanh())
-        self.main = nn.Sequential(*layers)
+        self.add_im = nn.Sequential()
+        self.add_im.append(nn.Conv2d(curr_dim+3, curr_dim, 3, 1, 1))
+        self.add_im.append(nn.ReLU(inplace=True))
+        
+        self.final_res = nn.ModuleList()
+        for i in range(3):
+            self.final_res.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim, style_dim=style_dim))
 
-    def forward(self, x, c):
+        self.final = nn.Sequential()
+        c = nn.Conv2d(curr_dim, 3, kernel_size=7, stride=1, padding=3, padding_mode="reflect")
+        weight_norm(c)
+        self.final.append(c)
+        self.final.append(nn.Tanh())
+        
+        
+        self.style_net = nn.Sequential()
+        l = nn.Linear(c_dim, style_dim)
+        weight_norm(l)
+        self.style_net.append(l)
+        self.style_net.append(nn.ReLU(inplace=True))
+        for i in range(5):
+            l = nn.Linear(style_dim, style_dim)
+            weight_norm(l)
+            self.style_net.append(l)
+            self.style_net.append(nn.ReLU(inplace=True))
+
+    def forward(self, x, c, orig_labels):
         # Replicate spatially and concatenate domain information.
         # Note that this type of label conditioning does not work at all if we use reflection padding in Conv2d.
         # This is because instance normalization ignores the shifting (or bias) effect.
-        c = c.view(c.size(0), c.size(1), 1, 1)
-        c = c.repeat(1, 1, x.size(2), x.size(3))
-        x = torch.cat([x, c], dim=1)
-        return self.main(x)
+        
+        im = x
+        c = c - orig_labels
+        style = self.style_net(c)
+        
+        residuals = []
+        for l in self.down:
+            x = l(x, style)
+            residuals.append(x)
+            x = F.relu(x, inplace=True)
+        
+        for l in self.modlayers:
+            x = l(x, style)
+            
+        for l, res in zip(self.up, residuals[1::-1]):
+            x = F.interpolate(x, scale_factor=2, mode="nearest")
+            x = torch.cat((x, res), dim=1)
+            x = l(x, style)
+            x = F.relu(x, inplace=True)
+        
+        x = torch.cat((im, x), dim=1)
+        x = self.add_im(x)
+        for l in self.final_res:
+            x = l(x, style)
+            
+        return self.final(x)
 
 
 class Discriminator(nn.Module):
