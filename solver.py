@@ -257,19 +257,14 @@ class Solver(object):
                 out_src = self.D(x_fake, c_trg)
                 g_loss_fake = -out_src.mean()
 
-                # Identity loss (instead of cycle consistency).
-                x_reconst = self.G(x_real, c_org, c_org)
-                g_loss_rec = torch.mean(torch.abs(x_real - x_reconst))
-
                 # Backward and optimize.
-                g_loss = g_loss_fake + self.lambda_rec * g_loss_rec
+                g_loss = g_loss_fake
                 self.reset_grad()
                 g_loss.backward()
                 self.g_optimizer.step()
 
                 # Logging.
                 loss['G/loss_fake'] = g_loss_fake
-                loss['G/loss_rec'] = g_loss_rec.item()
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #
