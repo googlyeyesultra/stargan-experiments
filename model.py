@@ -177,4 +177,5 @@ class Discriminator(nn.Module):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1)
         weights = self.class_weights(labels)
+        weights[labels.to(torch.bool)] = 0
         return (h * weights).sum(dim=1)
