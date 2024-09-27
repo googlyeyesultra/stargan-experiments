@@ -164,8 +164,17 @@ class Discriminator(nn.Module):
         layers.append(conv)
         self.main = nn.Sequential(*layers)
 
+
+        self.class_weights = nn.Sequential()
+        for i in range(5):
+            self.class_weights.append(nn.Linear(c_dim*2, c_dim*2))
+            self.class_weights.append(nn.ReLU(inplace=True))
+        self.class_weights.append(nn.Linear(c_dim*2, c_dim*2))
+        self.class_weights.append(nn.Softmax(dim=1))        
+        
         
     def forward(self, x, labels):
         h = self.main(x).squeeze(dim=(2, 3))
-        labels = torch.cat([labels, 1-labels], dim=1).to(torch.bool)
-        return h[labels].mean()
+        labels = torch.cat([labels, 1-labels], dim=1)
+        weights = self.class_weights(labels)
+        return (h * weights).sum(dim=1)
