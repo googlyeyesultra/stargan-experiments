@@ -175,6 +175,6 @@ class Discriminator(nn.Module):
     def forward(self, x, labels):
         h = self.main(x).squeeze(dim=(2, 3))
         labels = torch.cat([labels, 1-labels], dim=1)
-        weights = self.class_weights(labels) * (labels-1) * 1e8
+        weights = self.class_weights(labels) + (labels-1) * 1e8
         weights = F.softmax(weights, dim=1)
         return (h * weights).sum(dim=1)
